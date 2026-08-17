@@ -26,7 +26,7 @@ Memento è un'app Android moderna, veloce e completamente offline per prendere a
 
 1. Clona il repository:
    ```bash
-   git clone https://github.com/tuo-username/Memento.git
+   git clone https://github.com/pol/Memento.git
    ```
 2. Apri il progetto con **Android Studio** (Koala o successivi raccomandati).
 3. Attendi il termine del sync di Gradle.
