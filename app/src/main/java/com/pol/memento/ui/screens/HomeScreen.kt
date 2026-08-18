@@ -98,6 +98,13 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    if (isSearchActive) {
+        androidx.activity.compose.BackHandler {
+            isSearchActive = false
+            searchQuery = ""
+        }
+    }
+
     // Variabili di stato DataStore
     val defaultPriority by viewModel.defaultPriority.collectAsState()
     val isGridView by viewModel.isGridView.collectAsState()

@@ -39,6 +39,14 @@ import com.pol.memento.data.Note
 import com.pol.memento.ui.components.NoteCard
 import com.pol.memento.ui.components.SwipeToDismissWrapper
 import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +57,16 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    if (isSearchActive) {
+        androidx.activity.compose.BackHandler {
+            isSearchActive = false
+            searchQuery = ""
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
@@ -57,6 +75,17 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Indietro")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { 
+                        isSearchActive = !isSearchActive 
+                        if (!isSearchActive) searchQuery = ""
+                    }) {
+                        Icon(
+                            if (isSearchActive) Icons.Default.Close else Icons.Default.Search, 
+                            contentDescription = "Cerca"
+                        )
                     }
                 }
             )
@@ -67,34 +96,68 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 Text("Nessuna nota archiviata", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
             }
         } else {
-            val contentModifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+            val displayedNotes = if (searchQuery.isBlank()) {
+                archivedNotes
+            } else {
+                archivedNotes.filter {
+                    it.title.contains(searchQuery, ignoreCase = true) ||
+                    it.description.contains(searchQuery, ignoreCase = true)
+                }
+            }
 
-            if (isGridView) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = contentModifier,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(archivedNotes, key = { it.id }) { note ->
-                        val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
-                        Box(modifier = Modifier.animateItem()) {
-                            ArchiveNoteItem(note, viewModel, snackbarHostState, coroutineScope, isGridView, folderName)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp)
+            ) {
+                AnimatedVisibility(visible = isSearchActive) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, bottom = 12.dp),
+                        placeholder = { Text("Cerca nell'archivio...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Cancella ricerca")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+
+                if (isGridView) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(top = if (isSearchActive) 0.dp else 16.dp, bottom = 16.dp)
+                    ) {
+                        items(displayedNotes, key = { it.id }) { note ->
+                            val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
+                            Box(modifier = Modifier.animateItem()) {
+                                ArchiveNoteItem(note, viewModel, snackbarHostState, coroutineScope, isGridView, folderName)
+                            }
                         }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = contentModifier,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(archivedNotes, key = { it.id }) { note ->
-                        val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
-                        Box(modifier = Modifier.animateItem()) {
-                            ArchiveNoteItem(note, viewModel, snackbarHostState, coroutineScope, isGridView, folderName)
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(top = if (isSearchActive) 0.dp else 16.dp, bottom = 16.dp)
+                    ) {
+                        items(displayedNotes, key = { it.id }) { note ->
+                            val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
+                            Box(modifier = Modifier.animateItem()) {
+                                ArchiveNoteItem(note, viewModel, snackbarHostState, coroutineScope, isGridView, folderName)
+                            }
                         }
                     }
                 }
