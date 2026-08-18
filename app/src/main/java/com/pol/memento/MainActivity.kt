@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
             com.pol.memento.ui.theme.MementoTheme(
                 darkTheme = isDarkMode,
                 dynamicColor = true
-            ) {/re
+            ) {
                 val colorScheme = MaterialTheme.colorScheme
                 val view = LocalView.current
                 if (!view.isInEditMode) {
