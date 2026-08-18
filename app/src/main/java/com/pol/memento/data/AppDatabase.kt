@@ -45,6 +45,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "note_database"
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .fallbackToDestructiveMigration()
                     .build()
                     .also { Instance = it }
             }
