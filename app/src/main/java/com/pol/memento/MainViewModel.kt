@@ -101,10 +101,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 priority = priority,
                 isPinned = isPinned
             )
-            // Salviamo nel database e otteniamo l'ID generato
+            val generatedId = dao.insertNote(newNote).toInt()
+            val noteWithId = newNote.copy(id = generatedId)
+            notificationHelper.showNotification(noteWithId)
+        }
+    }
+
+    // Funzione per salvare una nuova nota dal foglio (con cartella)
+    fun addNoteFromSheet(title: String, description: String, priority: PriorityLevel, isPinned: Boolean, folderId: Int?) {
+        viewModelScope.launch {
+            val newNote = Note(
+                title = title,
+                description = description,
+                priority = priority,
+                isPinned = isPinned
+            )
             val generatedId = dao.insertNote(newNote).toInt()
 
-            // Creiamo la notifica associata a quell'ID
+            if (folderId != null) {
+                folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folderId, generatedId))
+            }
+
             val noteWithId = newNote.copy(id = generatedId)
             notificationHelper.showNotification(noteWithId)
         }
@@ -120,6 +137,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isPinned = isPinned
             )
             dao.updateNote(updatedNote)
+            notificationHelper.showNotification(updatedNote)
+        }
+    }
+
+    // Funzione per aggiornare una nota esistente dal foglio (con cartella)
+    fun updateNoteFromSheet(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean, folderId: Int?) {
+        viewModelScope.launch {
+            val updatedNote = note.copy(
+                title = title,
+                description = description,
+                priority = priority,
+                isPinned = isPinned
+            )
+            dao.updateNote(updatedNote)
+            
+            folderDao.removeNoteFromAllFolders(note.id)
+            if (folderId != null) {
+                folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folderId, note.id))
+            }
+            
             notificationHelper.showNotification(updatedNote)
         }
     }

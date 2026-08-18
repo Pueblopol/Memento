@@ -33,6 +33,9 @@ interface FolderDao {
     @Query("DELETE FROM folder_note_cross_ref WHERE folderId = :folderId AND noteId = :noteId")
     suspend fun removeNoteFromFolder(folderId: Int, noteId: Int)
 
+    @Query("DELETE FROM folder_note_cross_ref WHERE noteId = :noteId")
+    suspend fun removeNoteFromAllFolders(noteId: Int)
+
     @Delete
     suspend fun deleteFolder(folder: Folder)
 }

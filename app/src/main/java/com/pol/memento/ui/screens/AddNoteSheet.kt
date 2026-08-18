@@ -51,12 +51,20 @@ import com.pol.memento.data.PriorityLevel
 import com.pol.memento.ui.components.PriorityButton
 import com.pol.memento.ui.util.MarkdownVisualTransformation
 
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+
 // Interfaccia del Modale a Scomparsa (Add Note)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteContent(
     noteToEdit: Note?,
     initialPriority: PriorityLevel,
-    onSave: (String, String, PriorityLevel, Boolean) -> Unit,
+    folders: List<com.pol.memento.data.Folder>,
+    initialFolderId: Int?,
+    onSave: (String, String, PriorityLevel, Boolean, Int?) -> Unit,
     onCancel: () -> Unit
 ) {
     // Variabili temporanee in cui l'utente scrive prima di salvare
@@ -64,6 +72,7 @@ fun AddNoteContent(
     var description by remember { mutableStateOf(TextFieldValue(noteToEdit?.description ?: "")) }
     var priority by remember { mutableStateOf(noteToEdit?.priority ?: initialPriority) }
     var isPinned by remember { mutableStateOf(noteToEdit?.isPinned ?: false) }
+    var selectedFolderId by remember { mutableStateOf(initialFolderId) }
     var isDescriptionFocused by remember { mutableStateOf(false) }
 
     val scrollConnection = remember {
@@ -276,6 +285,26 @@ fun AddNoteContent(
             PriorityButton("Bassa", Color(0xFF2979FF), priority == PriorityLevel.LOW) { priority = PriorityLevel.LOW }
         }
 
+        if (folders.isNotEmpty()) {
+            Text(text = "Aggiungi a cartella")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    FilterChip(
+                        selected = selectedFolderId == null,
+                        onClick = { selectedFolderId = null },
+                        label = { Text("Nessuna") }
+                    )
+                }
+                items(folders, key = { it.id }) { folder ->
+                    FilterChip(
+                        selected = selectedFolderId == folder.id,
+                        onClick = { selectedFolderId = folder.id },
+                        label = { Text(folder.name) }
+                    )
+                }
+            }
+        }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "Fissa come notifica persistente")
             Spacer(modifier = Modifier.weight(1f))
@@ -292,7 +321,7 @@ fun AddNoteContent(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
-                onClick = { onSave(title, description.text, priority, isPinned) },
+                onClick = { onSave(title, description.text, priority, isPinned, selectedFolderId) },
                 enabled = title.isNotBlank()
             ) {
                 Text(if (noteToEdit == null) "Aggiungi Nota" else "Aggiorna Nota")

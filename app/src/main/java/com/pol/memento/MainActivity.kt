@@ -10,11 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -93,43 +89,42 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class Screen { HOME, FOLDERS, ARCHIVE }
-
 @Composable
 fun AppNavigation(viewModel: MainViewModel, isDarkMode: Boolean, onDarkModeChange: (Boolean) -> Unit) {
-    var currentScreen by remember { mutableStateOf(Screen.HOME) }
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = 1,
+        pageCount = { 3 }
+    )
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    BackHandler(enabled = currentScreen != Screen.HOME) {
-        currentScreen = Screen.HOME
+    androidx.activity.compose.BackHandler(enabled = pagerState.currentPage != 1) {
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(1)
+        }
     }
 
-    AnimatedContent(
-        targetState = currentScreen,
-        transitionSpec = {
-            val animSpec = tween<IntOffset>(300)
-            when (targetState) {
-                Screen.FOLDERS -> {
-                    if (initialState == Screen.HOME) slideInHorizontally(animationSpec = animSpec) { width -> -width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> width }
-                    else slideInHorizontally(animationSpec = animSpec) { width -> width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> -width }
+    androidx.compose.foundation.pager.HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize()
+    ) { page ->
+        when (page) {
+            0 -> FoldersScreen(viewModel, onNavigateBack = { 
+                coroutineScope.launch { pagerState.animateScrollToPage(1) } 
+            })
+            1 -> MainScreen(
+                viewModel, 
+                isDarkMode, 
+                onDarkModeChange, 
+                onNavigateToFolders = { 
+                    coroutineScope.launch { pagerState.animateScrollToPage(0) } 
+                }, 
+                onNavigateToArchive = { 
+                    coroutineScope.launch { pagerState.animateScrollToPage(2) } 
                 }
-                Screen.HOME -> {
-                    when (initialState) {
-                        Screen.FOLDERS -> slideInHorizontally(animationSpec = animSpec) { width -> width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> -width }
-                        Screen.ARCHIVE -> slideInHorizontally(animationSpec = animSpec) { width -> -width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> width }
-                        else -> slideInHorizontally(animationSpec = animSpec) { width -> width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> -width }
-                    }
-                }
-                Screen.ARCHIVE -> {
-                    if (initialState == Screen.HOME) slideInHorizontally(animationSpec = animSpec) { width -> width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> -width }
-                    else slideInHorizontally(animationSpec = animSpec) { width -> width } togetherWith slideOutHorizontally(animationSpec = animSpec) { width -> -width }
-                }
-            }
-        }, label = "AppNavigation"
-    ) { screen ->
-        when (screen) {
-            Screen.HOME -> MainScreen(viewModel, isDarkMode, onDarkModeChange, onNavigateToFolders = { currentScreen = Screen.FOLDERS }, onNavigateToArchive = { currentScreen = Screen.ARCHIVE })
-            Screen.FOLDERS -> FoldersScreen(viewModel, onNavigateBack = { currentScreen = Screen.HOME })
-            Screen.ARCHIVE -> ArchiveScreen(viewModel, onNavigateBack = { currentScreen = Screen.HOME })
+            )
+            2 -> ArchiveScreen(viewModel, onNavigateBack = { 
+                coroutineScope.launch { pagerState.animateScrollToPage(1) } 
+            })
         }
     }
 }

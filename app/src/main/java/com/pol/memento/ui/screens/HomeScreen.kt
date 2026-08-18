@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -253,10 +253,10 @@ fun MainScreen(
             }
 
             if (isGridView) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                LazyVerticalStaggeredGrid(
+                    columns = StaggeredGridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalItemSpacing = 8.dp,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(displayedNotes, key = { it.id }) { note ->
@@ -417,11 +417,13 @@ fun MainScreen(
             AddNoteContent(
                 noteToEdit = noteToEdit,
                 initialPriority = defaultPriority,
-                onSave = { title, desc, prio, pinned ->
+                folders = foldersWithNotes.map { it.folder },
+                initialFolderId = foldersWithNotes.find { f -> f.notes.any { it.id == noteToEdit?.id } }?.folder?.id,
+                onSave = { title, desc, prio, pinned, folderId ->
                     if (noteToEdit == null) {
-                        viewModel.addNote(title, desc, prio, pinned)
+                        viewModel.addNoteFromSheet(title, desc, prio, pinned, folderId)
                     } else {
-                        viewModel.updateNote(noteToEdit!!, title, desc, prio, pinned)
+                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, folderId)
                     }
                     isSheetOpen = false
                 },

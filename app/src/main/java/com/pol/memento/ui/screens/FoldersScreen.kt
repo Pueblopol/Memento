@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -260,10 +260,10 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Seleziona note da aggiungere:", style = MaterialTheme.typography.titleMedium)
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
                         modifier = Modifier.heightIn(max = 400.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalItemSpacing = 8.dp,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(allNotes) { note ->
@@ -313,10 +313,10 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text("Seleziona le note da includere:", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(16.dp))
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
                         modifier = Modifier.heightIn(max = 400.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalItemSpacing = 8.dp,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(allNotes) { note ->
@@ -364,11 +364,13 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             AddNoteContent(
                 noteToEdit = noteToEdit,
                 initialPriority = defaultPriority,
-                onSave = { title, desc, prio, pinned ->
+                folders = foldersWithNotes.map { it.folder },
+                initialFolderId = foldersWithNotes.find { f -> f.notes.any { it.id == noteToEdit?.id } }?.folder?.id,
+                onSave = { title, desc, prio, pinned, folderId ->
                     if (noteToEdit == null) {
-                        viewModel.addNote(title, desc, prio, pinned)
+                        viewModel.addNoteFromSheet(title, desc, prio, pinned, folderId)
                     } else {
-                        viewModel.updateNote(noteToEdit!!, title, desc, prio, pinned)
+                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, folderId)
                     }
                     isSheetOpen = false
                 },
