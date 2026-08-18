@@ -8,6 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,7 +75,7 @@ import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val foldersWithNotes by viewModel.foldersWithNotesList.collectAsState()
@@ -107,6 +111,11 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     
     var folderBeingEdited by remember { mutableStateOf<FolderWithNotes?>(null) }
     var selectedNotesForEditingFolder by remember { mutableStateOf(setOf<Int>()) }
+
+    var showFolderMenuId by remember { mutableStateOf<Int?>(null) }
+    var isRenamingFolder by remember { mutableStateOf(false) }
+    var folderToRename by remember { mutableStateOf<com.pol.memento.data.Folder?>(null) }
+    var renameFolderText by remember { mutableStateOf("") }
 
     var isSheetOpen by remember { mutableStateOf(false) }
     var noteToEdit by remember { mutableStateOf<Note?>(null) }
@@ -197,25 +206,62 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .shadow(elevation, shape = RoundedCornerShape(12.dp))
-                                .clickable {
-                                    expandedFolderId = if (expandedFolderId == folderWithNotes.folder.id) null else folderWithNotes.folder.id
-                                }
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Menu, contentDescription = "Trascina cartella", modifier = Modifier.draggableHandle().padding(end = 8.dp), tint = Color.Gray)
-                                    Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(folderWithNotes.folder.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                    IconButton(
-                                        onClick = {
-                                            folderBeingEdited = folderWithNotes
-                                            selectedNotesForEditingFolder = folderWithNotes.notes.map { it.id }.toSet()
-                                        }
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = "Aggiungi note")
+                                .combinedClickable(
+                                    onClick = {
+                                        expandedFolderId = if (expandedFolderId == folderWithNotes.folder.id) null else folderWithNotes.folder.id
+                                    },
+                                    onLongClick = {
+                                        showFolderMenuId = folderWithNotes.folder.id
                                     }
-                                }
+                                )
+                        ) {
+                            Box {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Menu, contentDescription = "Trascina cartella", modifier = Modifier.draggableHandle().padding(end = 8.dp), tint = Color.Gray)
+                                        Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(folderWithNotes.folder.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                        IconButton(
+                                            onClick = {
+                                                folderBeingEdited = folderWithNotes
+                                                selectedNotesForEditingFolder = folderWithNotes.notes.map { it.id }.toSet()
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = "Aggiungi note")
+                                        }
+                                    }
+                                    
+                                    DropdownMenu(
+                                        expanded = showFolderMenuId == folderWithNotes.folder.id,
+                                        onDismissRequest = { showFolderMenuId = null }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Rinomina") },
+                                            onClick = {
+                                                showFolderMenuId = null
+                                                folderToRename = folderWithNotes.folder
+                                                renameFolderText = folderWithNotes.folder.name
+                                                isRenamingFolder = true
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Elimina", color = Color.Red) },
+                                            onClick = {
+                                                showFolderMenuId = null
+                                                viewModel.deleteFolder(folderWithNotes.folder)
+                                                coroutineScope.launch {
+                                                    val result = snackbarHostState.showSnackbar(
+                                                        message = "Cartella eliminata",
+                                                        actionLabel = "Annulla"
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        viewModel.restoreFolder(folderWithNotes)
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
                                 AnimatedVisibility(visible = expandedFolderId == folderWithNotes.folder.id) {
                                     Column(modifier = Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                         folderWithNotes.notes.forEach { note ->
@@ -235,6 +281,7 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                             )
                                         }
                                     }
+                                    }
                                 }
                             }
                         }
@@ -242,6 +289,38 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (isRenamingFolder) {
+        AlertDialog(
+            onDismissRequest = { isRenamingFolder = false },
+            title = { Text("Rinomina Cartella") },
+            text = {
+                OutlinedTextField(
+                    value = renameFolderText,
+                    onValueChange = { renameFolderText = it },
+                    label = { Text("Nome cartella") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (renameFolderText.isNotBlank() && folderToRename != null) {
+                        viewModel.renameFolder(folderToRename!!, renameFolderText)
+                        isRenamingFolder = false
+                    }
+                }) {
+                    Text("Salva")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isRenamingFolder = false }) {
+                    Text("Annulla")
+                }
+            }
+        )
     }
 
     if (isCreatingFolder) {
@@ -366,11 +445,11 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 initialPriority = defaultPriority,
                 folders = foldersWithNotes.map { it.folder },
                 initialFolderId = foldersWithNotes.find { f -> f.notes.any { it.id == noteToEdit?.id } }?.folder?.id,
-                onSave = { title, desc, prio, pinned, folderId ->
+                onSave = { title, desc, prio, pinned, persistent, folderId ->
                     if (noteToEdit == null) {
-                        viewModel.addNoteFromSheet(title, desc, prio, pinned, folderId)
+                        viewModel.addNoteFromSheet(title, desc, prio, pinned, persistent, folderId)
                     } else {
-                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, folderId)
+                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, persistent, folderId)
                     }
                     isSheetOpen = false
                 },

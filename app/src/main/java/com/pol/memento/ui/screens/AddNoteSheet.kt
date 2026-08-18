@@ -64,7 +64,7 @@ fun AddNoteContent(
     initialPriority: PriorityLevel,
     folders: List<com.pol.memento.data.Folder>,
     initialFolderId: Int?,
-    onSave: (String, String, PriorityLevel, Boolean, Int?) -> Unit,
+    onSave: (String, String, PriorityLevel, Boolean, Boolean, Int?) -> Unit,
     onCancel: () -> Unit
 ) {
     // Variabili temporanee in cui l'utente scrive prima di salvare
@@ -72,6 +72,7 @@ fun AddNoteContent(
     var description by remember { mutableStateOf(TextFieldValue(noteToEdit?.description ?: "")) }
     var priority by remember { mutableStateOf(noteToEdit?.priority ?: initialPriority) }
     var isPinned by remember { mutableStateOf(noteToEdit?.isPinned ?: false) }
+    var isPersistent by remember { mutableStateOf(noteToEdit?.isPersistent ?: false) }
     var selectedFolderId by remember { mutableStateOf(initialFolderId) }
     var isDescriptionFocused by remember { mutableStateOf(false) }
 
@@ -308,7 +309,7 @@ fun AddNoteContent(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "Fissa come notifica persistente")
             Spacer(modifier = Modifier.weight(1f))
-            Switch(checked = isPinned, onCheckedChange = { isPinned = it })
+            Switch(checked = isPersistent, onCheckedChange = { isPersistent = it })
         }
 
         Row(
@@ -321,7 +322,7 @@ fun AddNoteContent(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
-                onClick = { onSave(title, description.text, priority, isPinned, selectedFolderId) },
+                onClick = { onSave(title, description.text, priority, isPinned, isPersistent, selectedFolderId) },
                 enabled = title.isNotBlank()
             ) {
                 Text(if (noteToEdit == null) "Aggiungi Nota" else "Aggiorna Nota")

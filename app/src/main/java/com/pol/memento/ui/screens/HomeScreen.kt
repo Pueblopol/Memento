@@ -419,11 +419,11 @@ fun MainScreen(
                 initialPriority = defaultPriority,
                 folders = foldersWithNotes.map { it.folder },
                 initialFolderId = foldersWithNotes.find { f -> f.notes.any { it.id == noteToEdit?.id } }?.folder?.id,
-                onSave = { title, desc, prio, pinned, folderId ->
+                onSave = { title, desc, prio, pinned, persistent, folderId ->
                     if (noteToEdit == null) {
-                        viewModel.addNoteFromSheet(title, desc, prio, pinned, folderId)
+                        viewModel.addNoteFromSheet(title, desc, prio, pinned, persistent, folderId)
                     } else {
-                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, folderId)
+                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, persistent, folderId)
                     }
                     isSheetOpen = false
                 },

@@ -48,9 +48,10 @@ class NotificationHelper(private val context: Context) {
         val restoreIntent = Intent(context, NotificationRestorerReceiver::class.java).apply {
             putExtra("note_id", note.id)
             putExtra("note_title", note.title)
-            putExtra("note_desc", note.description)
+            putExtra("note_description", note.description)
             putExtra("note_priority", note.priority.name)
             putExtra("note_is_pinned", note.isPinned)
+            putExtra("note_is_persistent", note.isPersistent)
         }
         
         val pendingRestoreIntent = PendingIntent.getBroadcast(
@@ -67,8 +68,8 @@ class NotificationHelper(private val context: Context) {
             // Dobbiamo usare PRIORITÀ DEFAULT altrimenti Android sblocca lo swipe
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setSilent(true)
-            // IL CUORE DELL'APP: Se è "Pinned" o ha priorità alta, non può essere rimossa con lo swipe
-            .setOngoing(note.isPinned || note.priority == PriorityLevel.HIGH)
+            // IL CUORE DELL'APP: Solo se la nota è "Persistent" non può essere rimossa con lo swipe
+            .setOngoing(note.isPersistent)
 
         // Mostra la notifica usando l'ID univoco della nota
         notificationManager.notify(note.id, builder.build())

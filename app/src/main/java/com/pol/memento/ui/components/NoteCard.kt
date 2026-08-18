@@ -27,6 +27,12 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,7 +90,19 @@ fun NoteCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    if (note.isPinned) {
+                    if (onTogglePin != null) {
+                        IconButton(
+                            onClick = onTogglePin,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                                contentDescription = "Fissa nota",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (note.isPinned) MaterialTheme.colorScheme.primary else Color.Gray
+                            )
+                        }
+                    } else if (note.isPinned) {
                         Icon(
                             imageVector = Icons.Filled.PushPin,
                             contentDescription = "Fissa nota",
@@ -133,24 +151,31 @@ fun NoteCard(
                     Text(text = note.title, fontWeight = FontWeight.Bold)
                     if (!isCompactMode && note.description.isNotBlank()) {
                         val annotatedText = parseMarkdown(note.description)
-                        ClickableText(
+                        var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+                        Text(
                             text = annotatedText,
                             style = MaterialTheme.typography.bodyMedium.copy(color = LocalContentColor.current),
-                            onClick = { offset ->
-                                val text = note.description
-                                if (offset < text.length) {
-                                    val charClicked = text[offset]
-                                    if (charClicked == '☐') {
-                                        val newDesc = text.substring(0, offset) + "☑" + text.substring(offset + 1)
-                                        onToggleCheckbox?.invoke(note.copy(description = newDesc))
-                                        return@ClickableText
-                                    } else if (charClicked == '☑') {
-                                        val newDesc = text.substring(0, offset) + "☐" + text.substring(offset + 1)
-                                        onToggleCheckbox?.invoke(note.copy(description = newDesc))
-                                        return@ClickableText
+                            onTextLayout = { textLayoutResult = it },
+                            modifier = Modifier.pointerInput(Unit) {
+                                detectTapGestures { pos ->
+                                    textLayoutResult?.let { layoutResult ->
+                                        val offset = layoutResult.getOffsetForPosition(pos)
+                                        val textStr = note.description
+                                        if (offset < textStr.length) {
+                                            val charClicked = textStr[offset]
+                                            if (charClicked == '☐') {
+                                                val newDesc = textStr.substring(0, offset) + "☑" + textStr.substring(offset + 1)
+                                                onToggleCheckbox?.invoke(note.copy(description = newDesc))
+                                                return@detectTapGestures
+                                            } else if (charClicked == '☑') {
+                                                val newDesc = textStr.substring(0, offset) + "☐" + textStr.substring(offset + 1)
+                                                onToggleCheckbox?.invoke(note.copy(description = newDesc))
+                                                return@detectTapGestures
+                                            }
+                                        }
+                                        onClick()
                                     }
                                 }
-                                onClick()
                             }
                         )
                     }

@@ -23,6 +23,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +61,10 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
 
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    val defaultPriority by viewModel.defaultPriority.collectAsState()
+    var isSheetOpen by remember { mutableStateOf(false) }
+    var noteToEdit by remember { mutableStateOf<Note?>(null) }
 
     if (isSearchActive) {
         androidx.activity.compose.BackHandler {
@@ -143,7 +149,18 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         items(displayedNotes, key = { it.id }) { note ->
                             val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
                             Box(modifier = Modifier.animateItem()) {
-                                ArchiveNoteItem(note, viewModel, snackbarHostState, coroutineScope, isGridView, folderName)
+                                ArchiveNoteItem(
+                                    note = note,
+                                    viewModel = viewModel,
+                                    snackbarHostState = snackbarHostState,
+                                    coroutineScope = coroutineScope,
+                                    isGridView = isGridView,
+                                    folderName = folderName,
+                                    onNoteClick = { clickedNote ->
+                                        noteToEdit = clickedNote
+                                        isSheetOpen = true
+                                    }
+                                )
                             }
                         }
                     }
@@ -156,12 +173,47 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         items(displayedNotes, key = { it.id }) { note ->
                             val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
                             Box(modifier = Modifier.animateItem()) {
-                                ArchiveNoteItem(note, viewModel, snackbarHostState, coroutineScope, isGridView, folderName)
+                                ArchiveNoteItem(
+                                    note = note,
+                                    viewModel = viewModel,
+                                    snackbarHostState = snackbarHostState,
+                                    coroutineScope = coroutineScope,
+                                    isGridView = isGridView,
+                                    folderName = folderName,
+                                    onNoteClick = { clickedNote ->
+                                        noteToEdit = clickedNote
+                                        isSheetOpen = true
+                                    }
+                                )
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    if (isSheetOpen) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { isSheetOpen = false },
+            sheetState = sheetState
+        ) {
+            AddNoteContent(
+                noteToEdit = noteToEdit,
+                initialPriority = defaultPriority,
+                folders = foldersWithNotes.map { it.folder },
+                initialFolderId = foldersWithNotes.find { f -> f.notes.any { it.id == noteToEdit?.id } }?.folder?.id,
+                onSave = { title, desc, prio, pinned, persistent, folderId ->
+                    if (noteToEdit == null) {
+                        viewModel.addNoteFromSheet(title, desc, prio, pinned, persistent, folderId)
+                    } else {
+                        viewModel.updateNoteFromSheet(noteToEdit!!, title, desc, prio, pinned, persistent, folderId)
+                    }
+                    isSheetOpen = false
+                },
+                onCancel = { isSheetOpen = false }
+            )
         }
     }
 }
@@ -173,7 +225,8 @@ fun ArchiveNoteItem(
     snackbarHostState: SnackbarHostState,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     isGridView: Boolean,
-    folderName: String?
+    folderName: String?,
+    onNoteClick: (Note) -> Unit
 ) {
     val deleteNoteAction: (Note) -> Unit = { deletedNote ->
         viewModel.deleteNote(deletedNote)
@@ -219,7 +272,7 @@ fun ArchiveNoteItem(
             isSelectedForShare = false,
             note = note,
             folderName = folderName,
-            onClick = {},
+            onClick = { onNoteClick(note) },
             onTogglePin = { viewModel.togglePin(note) },
             onToggleCheckbox = { updatedNote ->
                 viewModel.updateNote(updatedNote, updatedNote.title, updatedNote.description, updatedNote.priority, updatedNote.isPinned)

@@ -60,20 +60,23 @@ class MainActivity : ComponentActivity() {
             }
 
             val isDarkMode = isDarkModeState!!
-            val colorScheme = if (isDarkMode) darkColorScheme() else lightColorScheme()
 
-            val view = LocalView.current
-            if (!view.isInEditMode) {
-                SideEffect {
-                    val window = (view.context as android.app.Activity).window
-                    window.statusBarColor = colorScheme.background.toArgb()
-                    window.navigationBarColor = colorScheme.background.toArgb()
-                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkMode
-                    WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDarkMode
+            com.pol.memento.ui.theme.MementoTheme(
+                darkTheme = isDarkMode,
+                dynamicColor = true
+            ) {/re
+                val colorScheme = MaterialTheme.colorScheme
+                val view = LocalView.current
+                if (!view.isInEditMode) {
+                    SideEffect {
+                        val window = (view.context as android.app.Activity).window
+                        window.statusBarColor = colorScheme.background.toArgb()
+                        window.navigationBarColor = colorScheme.background.toArgb()
+                        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkMode
+                        WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDarkMode
+                    }
                 }
-            }
 
-            MaterialTheme(colorScheme = colorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

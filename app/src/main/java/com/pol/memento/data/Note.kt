@@ -10,7 +10,8 @@ data class Note(
     val title: String,
     val description: String,
     val priority: PriorityLevel, // HIGH, MEDIUM, LOW
-    val isPinned: Boolean,       // true = notifica fissa
+    val isPinned: Boolean,       // true = pinnato in alto nell'app
+    val isPersistent: Boolean = false, // true = notifica fissa (persistente)
     val isNotificationActive: Boolean = true,
     val isCompleted: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),

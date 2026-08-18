@@ -21,6 +21,9 @@ interface FolderDao {
     @Update
     suspend fun updateFolders(folders: List<Folder>)
 
+    @Update
+    suspend fun updateFolder(folder: Folder)
+
     @Insert
     suspend fun insertFolder(folder: Folder): Long
 

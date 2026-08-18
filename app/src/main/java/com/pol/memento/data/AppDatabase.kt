@@ -26,8 +26,13 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE folders ADD COLUMN position REAL NOT NULL DEFAULT 0.0")
     }
 }
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN isPersistent INTEGER NOT NULL DEFAULT 0")
+    }
+}
 
-@Database(entities = [Note::class, Folder::class, FolderNoteCrossRef::class], version = 4, exportSchema = false)
+@Database(entities = [Note::class, Folder::class, FolderNoteCrossRef::class], version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun noteDao(): NoteDao
@@ -44,8 +49,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "note_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .fallbackToDestructiveMigration(true)
                     .build()
                     .also { Instance = it }
             }

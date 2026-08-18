@@ -93,13 +93,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Funzione per salvare una nuova nota
-    fun addNote(title: String, description: String, priority: PriorityLevel, isPinned: Boolean) {
+    fun addNote(title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean = false) {
         viewModelScope.launch {
             val newNote = Note(
                 title = title,
                 description = description,
                 priority = priority,
-                isPinned = isPinned
+                isPinned = isPinned,
+                isPersistent = isPersistent
             )
             val generatedId = dao.insertNote(newNote).toInt()
             val noteWithId = newNote.copy(id = generatedId)
@@ -108,13 +109,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Funzione per salvare una nuova nota dal foglio (con cartella)
-    fun addNoteFromSheet(title: String, description: String, priority: PriorityLevel, isPinned: Boolean, folderId: Int?) {
+    fun addNoteFromSheet(title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean, folderId: Int?) {
         viewModelScope.launch {
             val newNote = Note(
                 title = title,
                 description = description,
                 priority = priority,
-                isPinned = isPinned
+                isPinned = isPinned,
+                isPersistent = isPersistent
             )
             val generatedId = dao.insertNote(newNote).toInt()
 
@@ -127,14 +129,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Folder management
+    fun renameFolder(folder: com.pol.memento.data.Folder, newName: String) {
+        viewModelScope.launch {
+            folderDao.updateFolder(folder.copy(name = newName))
+        }
+    }
+
     // Funzione per aggiornare una nota esistente
-    fun updateNote(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean) {
+    fun updateNote(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean = note.isPersistent) {
         viewModelScope.launch {
             val updatedNote = note.copy(
                 title = title,
                 description = description,
                 priority = priority,
-                isPinned = isPinned
+                isPinned = isPinned,
+                isPersistent = isPersistent
             )
             dao.updateNote(updatedNote)
             notificationHelper.showNotification(updatedNote)
@@ -142,13 +152,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Funzione per aggiornare una nota esistente dal foglio (con cartella)
-    fun updateNoteFromSheet(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean, folderId: Int?) {
+    fun updateNoteFromSheet(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean, folderId: Int?) {
         viewModelScope.launch {
             val updatedNote = note.copy(
                 title = title,
                 description = description,
                 priority = priority,
-                isPinned = isPinned
+                isPinned = isPinned,
+                isPersistent = isPersistent
             )
             dao.updateNote(updatedNote)
             
@@ -183,7 +194,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun restoreNote(note: Note) {
         viewModelScope.launch {
             dao.insertNote(note)
-            if (!note.isCompleted && (note.isPinned || note.priority == PriorityLevel.HIGH)) {
+            if (!note.isCompleted && note.isPersistent) {
                 notificationHelper.showNotification(note)
             }
         }
@@ -194,14 +205,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val updatedNote = note.copy(isPinned = !note.isPinned)
             dao.updateNote(updatedNote)
-            if (updatedNote.isCompleted) {
-                // Le note archiviate non mostrano notifiche anche se pinnate
-                notificationHelper.cancelNotification(updatedNote.id)
-            } else if (updatedNote.isPinned || updatedNote.priority == PriorityLevel.HIGH) {
-                notificationHelper.showNotification(updatedNote)
-            } else {
-                notificationHelper.cancelNotification(updatedNote.id)
-            }
         }
     }
     

@@ -14,17 +14,18 @@ class NotificationRestorerReceiver : BroadcastReceiver() {
             val desc = intent.getStringExtra("note_desc") ?: ""
             val priorityName = intent.getStringExtra("note_priority") ?: PriorityLevel.MEDIUM.name
             val isPinned = intent.getBooleanExtra("note_is_pinned", false)
+            val isPersistent = intent.getBooleanExtra("note_is_persistent", false)
             
             val note = Note(
                 id = noteId,
                 title = title,
                 description = desc,
                 priority = PriorityLevel.valueOf(priorityName),
-                isPinned = isPinned
+                isPinned = isPinned,
+                isPersistent = isPersistent
             )
             
-            // Se la nota è ancora configurata per essere fissa, la ricreiamo!
-            if (note.isPinned || note.priority == PriorityLevel.HIGH) {
+            if (note.isPersistent) {
                 val notificationHelper = NotificationHelper(context)
                 notificationHelper.showNotification(note)
             }

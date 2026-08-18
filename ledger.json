@@ -1,0 +1,76 @@
+{
+  "pins": [
+    {
+      "id": "pin-deprecated-clickabletext",
+      "kind": "defect",
+      "state": "decided",
+      "severity": "low",
+      "confidence": "extracted",
+      "cluster_id": "compose_deprecations",
+      "is_intentional_stub": false,
+      "as_is": "ClickableText is deprecated in NoteCard.kt",
+      "to_be": "Sostituire ClickableText con Text e LinkAnnotation.",
+      "anchors": ["app/src/main/java/com/pol/memento/ui/components/NoteCard.kt"]
+    },
+    {
+      "id": "pin-deprecated-icons",
+      "kind": "defect",
+      "state": "decided",
+      "severity": "low",
+      "confidence": "extracted",
+      "cluster_id": "compose_deprecations",
+      "is_intentional_stub": false,
+      "as_is": "Icons.Filled.FormatListBulleted is deprecated in AddNoteSheet.kt",
+      "to_be": "Sostituire Icons.Filled.FormatListBulleted con Icons.AutoMirrored.Filled.FormatListBulleted.",
+      "anchors": ["app/src/main/java/com/pol/memento/ui/screens/AddNoteSheet.kt"]
+    },
+    {
+      "id": "pin-deprecated-room",
+      "kind": "defect",
+      "state": "decided",
+      "severity": "low",
+      "confidence": "extracted",
+      "cluster_id": "room_deprecations",
+      "is_intentional_stub": false,
+      "as_is": "fallbackToDestructiveMigration() requires a boolean parameter",
+      "to_be": "Aggiungere il flag esplicito in fallbackToDestructiveMigration(true).",
+      "anchors": ["app/src/main/java/com/pol/memento/data/AppDatabase.kt"]
+    },
+    {
+      "id": "pin-drag-drop",
+      "kind": "incompleteness",
+      "state": "decided",
+      "severity": "medium",
+      "confidence": "inferred",
+      "cluster_id": "ux_design",
+      "is_intentional_stub": true,
+      "as_is": "Il drag & drop non è ancora supportato. Con il passaggio alla griglia Masonry, il riordino manuale diventa complesso.",
+      "to_be": "Supportare il drag & drop solo nella visualizzazione a lista (disabilitarlo nella griglia Masonry).",
+      "anchors": []
+    },
+    {
+      "id": "pin-dark-mode",
+      "kind": "incompleteness",
+      "state": "decided",
+      "severity": "medium",
+      "confidence": "inferred",
+      "cluster_id": "theming",
+      "is_intentional_stub": true,
+      "as_is": "Dark mode prevista nel menu ma non completamente definita come palette di colori personalizzata.",
+      "to_be": "Implementare i colori dinamici (Dynamic Colors) di Material 3, che si adattano allo sfondo di sistema dell'utente.",
+      "anchors": []
+    },
+    {
+      "id": "pin-folder-mgmt",
+      "kind": "incompleteness",
+      "state": "decided",
+      "severity": "medium",
+      "confidence": "inferred",
+      "cluster_id": "ux_design",
+      "is_intentional_stub": true,
+      "as_is": "Manca la gestione delle cartelle (rinominare, eliminare cartelle esistenti).",
+      "to_be": "Aggiungere un menu contestuale attivabile tramite long-press sulle cartelle esistenti (nella FoldersScreen) per permetterne la rinomina o l'eliminazione.",
+      "anchors": []
+    }
+  ]
+}
