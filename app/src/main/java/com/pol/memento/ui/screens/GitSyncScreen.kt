@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -120,18 +122,40 @@ fun GitSyncScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            var isCloning by remember { mutableStateOf(false) }
+
             Button(
                 onClick = {
                     if (repoUrl.isBlank() || pat.isBlank()) {
                         coroutineScope.launch { snackbarHostState.showSnackbar("Inserisci l'URL del repo e il Token") }
                     } else {
-                        gitRepo.saveGitCredentials(repoUrl.trim(), username.trim(), pat.trim())
-                        coroutineScope.launch { snackbarHostState.showSnackbar("Credenziali salvate e criptate con successo!") }
+                        isCloning = true
+                        coroutineScope.launch {
+                            val result = viewModel.syncEngine.cloneRepo(repoUrl.trim(), username.trim(), pat.trim())
+                            isCloning = false
+                            if (result.isSuccess) {
+                                gitRepo.saveGitCredentials(repoUrl.trim(), username.trim(), pat.trim())
+                                snackbarHostState.showSnackbar("Repo clonato e credenziali salvate con successo!")
+                            } else {
+                                snackbarHostState.showSnackbar(result.exceptionOrNull()?.message ?: "Errore durante la clonazione")
+                            }
+                        }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isCloning
             ) {
-                Text(if (isConfigured) "Aggiorna Credenziali" else "Salva e Inizia")
+                if (isCloning) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Clonazione in corso...")
+                } else {
+                    Text(if (isConfigured) "Aggiorna e Clona" else "Salva e Clona")
+                }
             }
 
             if (isConfigured) {
