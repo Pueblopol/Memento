@@ -43,67 +43,80 @@ object MarkdownDeserializer {
             var needsRewrite = false
 
             if (lines[i].trim() == "---") {
-                hasYaml = true
-                i++
-                var inFoldersArray = false
-                var foundId = false
-                var foundTitle = false
-                
-                // Parsa YAML Frontmatter
-                while (i < lines.size) {
-                    val line = lines[i]
-                    if (line.trim() == "---") {
-                        i++
+                // Look ahead to see if there is a closing ---
+                var hasClosingYaml = false
+                for (j in (i + 1) until lines.size) {
+                    if (lines[j].trim() == "---") {
+                        hasClosingYaml = true
                         break
                     }
-                    
-                    if (inFoldersArray) {
-                        if (line.startsWith("  - ")) {
-                            val folderName = line.substringAfter("-").trim().removeSurrounding("\"")
-                            folderNames.add(folderName)
-                            i++
-                            continue
-                        } else {
-                            inFoldersArray = false
-                        }
-                    }
-
-                    if (line.startsWith("id:")) {
-                        val parsedId = line.substringAfter(":").trim().removeSurrounding("\"")
-                        if (parsedId.isNotEmpty()) {
-                            id = parsedId
-                            foundId = true
-                        }
-                    } else if (line.startsWith("title:")) {
-                        title = line.substringAfter(":").trim().removeSurrounding("\"")
-                        foundTitle = true
-                    } else if (line.startsWith("priority:")) {
-                        val p = line.substringAfter(":").trim()
-                        priority = try { PriorityLevel.valueOf(p) } catch (e: Exception) { PriorityLevel.LOW }
-                    } else if (line.startsWith("pinned:")) {
-                        isPinned = line.substringAfter(":").trim().toBoolean()
-                    } else if (line.startsWith("persistent_notification:")) {
-                        isPersistent = line.substringAfter(":").trim().toBoolean()
-                    } else if (line.startsWith("is_completed:")) {
-                        isCompleted = line.substringAfter(":").trim().toBoolean()
-                    } else if (line.startsWith("created_at:")) {
-                        val dateStr = line.substringAfter(":").trim()
-                        try {
-                            createdAt = dateFormat.parse(dateStr)?.time ?: System.currentTimeMillis()
-                        } catch (e: Exception) { }
-                    } else if (line.startsWith("position:")) {
-                        position = line.substringAfter(":").trim().toDoubleOrNull() ?: 0.0
-                    } else if (line.startsWith("folders:")) {
-                        val arrStr = line.substringAfter(":").trim()
-                        if (arrStr == "[]") {
-                            // Empty folders
-                        } else if (arrStr.isEmpty()) {
-                            inFoldersArray = true
-                        }
-                    }
-                    i++
                 }
-                if (!foundId || !foundTitle) {
+
+                if (hasClosingYaml) {
+                    hasYaml = true
+                    i++
+                    var inFoldersArray = false
+                    var foundId = false
+                    var foundTitle = false
+                    
+                    // Parsa YAML Frontmatter
+                    while (i < lines.size) {
+                        val line = lines[i]
+                        if (line.trim() == "---") {
+                            i++
+                            break
+                        }
+                        
+                        if (inFoldersArray) {
+                            if (line.startsWith("  - ")) {
+                                val folderName = line.substringAfter("-").trim().removeSurrounding("\"")
+                                folderNames.add(folderName)
+                                i++
+                                continue
+                            } else {
+                                inFoldersArray = false
+                            }
+                        }
+
+                        if (line.startsWith("id:")) {
+                            val parsedId = line.substringAfter(":").trim().removeSurrounding("\"")
+                            if (parsedId.isNotEmpty()) {
+                                id = parsedId
+                                foundId = true
+                            }
+                        } else if (line.startsWith("title:")) {
+                            title = line.substringAfter(":").trim().removeSurrounding("\"")
+                            foundTitle = true
+                        } else if (line.startsWith("priority:")) {
+                            val p = line.substringAfter(":").trim()
+                            priority = try { PriorityLevel.valueOf(p) } catch (e: Exception) { PriorityLevel.LOW }
+                        } else if (line.startsWith("pinned:")) {
+                            isPinned = line.substringAfter(":").trim().toBoolean()
+                        } else if (line.startsWith("persistent_notification:")) {
+                            isPersistent = line.substringAfter(":").trim().toBoolean()
+                        } else if (line.startsWith("is_completed:")) {
+                            isCompleted = line.substringAfter(":").trim().toBoolean()
+                        } else if (line.startsWith("created_at:")) {
+                            val dateStr = line.substringAfter(":").trim()
+                            try {
+                                createdAt = dateFormat.parse(dateStr)?.time ?: System.currentTimeMillis()
+                            } catch (e: Exception) { }
+                        } else if (line.startsWith("position:")) {
+                            position = line.substringAfter(":").trim().toDoubleOrNull() ?: 0.0
+                        } else if (line.startsWith("folders:")) {
+                            val arrStr = line.substringAfter(":").trim()
+                            if (arrStr == "[]") {
+                                // Empty folders
+                            } else if (arrStr.isEmpty()) {
+                                inFoldersArray = true
+                            }
+                        }
+                        i++
+                    }
+                    if (!foundId || !foundTitle) {
+                        needsRewrite = true
+                    }
+                } else {
                     needsRewrite = true
                 }
             } else {

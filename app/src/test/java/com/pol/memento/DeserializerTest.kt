@@ -11,6 +11,6 @@ class DeserializerTest {
             This is a test note from PC.
         """.trimIndent()
         val parsed = MarkdownDeserializer.deserialize(md, "Hello World")
-        println(parsed)
+        throw Exception("RESULT_NOTE_DESC: '${parsed?.note?.description}'")
     }
 }
