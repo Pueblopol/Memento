@@ -4,6 +4,7 @@ import android.content.Context
 import com.pol.memento.data.GitSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
@@ -202,5 +203,59 @@ class MarkdownSyncEngine(
         if (pullRes.isFailure) return@withContext pullRes
         
         return@withContext pushOnly()
+    }
+    
+    /**
+     * Legge tutti i file markdown nella cartella clonato, deserializza e aggiorna il DB locale.
+     * NB: Chiamalo DOPO un pull, per aggiornare l'interfaccia.
+     */
+    suspend fun syncDatabaseWithFiles(
+        noteDao: com.pol.memento.data.NoteDao, 
+        folderDao: com.pol.memento.data.FolderDao
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
+
+            val mdFiles = repoDir.listFiles { _, name -> name.endsWith(".md") } ?: emptyArray()
+            
+            // Per gestire cancellazioni (file rimossi dal PC), leggiamo tutte le note attuali
+            val dbNotes = noteDao.getAllNotes().first()
+            val existingIds = mdFiles.mapNotNull { file ->
+                val parsed = MarkdownDeserializer.deserialize(file.readText())
+                if (parsed != null) {
+                    // Update/Insert note
+                    noteDao.insertNote(parsed.note) // insertNote has OnConflictStrategy.REPLACE
+                    
+                    // Manage folders (create them if they don't exist)
+                    folderDao.removeNoteFromAllFolders(parsed.note.id)
+                    
+                    // Read current folders to find matching names
+                    val allFolders = folderDao.getAllFolders().first()
+                    for (fName in parsed.folderNames) {
+                        var folder = allFolders.find { it.name == fName }
+                        if (folder == null) {
+                            folder = com.pol.memento.data.Folder(name = fName)
+                            folderDao.insertFolder(folder)
+                        }
+                        folderDao.insertFolderNoteCrossRef(
+                            com.pol.memento.data.FolderNoteCrossRef(folder.id, parsed.note.id)
+                        )
+                    }
+                    parsed.note.id
+                } else null
+            }.toSet()
+            
+            // Delete notes from DB that no longer exist in Git
+            for (dbNote in dbNotes) {
+                if (!existingIds.contains(dbNote.id)) {
+                    noteDao.deleteNote(dbNote)
+                }
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(Exception("Errore durante la deserializzazione: ${e.message}"))
+        }
     }
 }

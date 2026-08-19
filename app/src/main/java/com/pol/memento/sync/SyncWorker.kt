@@ -26,7 +26,13 @@ class SyncWorker(
         val result = syncEngine.syncAll()
 
         return if (result.isSuccess) {
-            Log.d("SyncWorker", "Sincronizzazione completata con successo!")
+            Log.d("SyncWorker", "Sincronizzazione (Pull/Push) completata con successo! Inizio Deserializzazione...")
+            
+            // Aggiorna DB locale
+            val database = com.pol.memento.data.AppDatabase.getDatabase(context)
+            syncEngine.syncDatabaseWithFiles(database.noteDao(), database.folderDao())
+            
+            Log.d("SyncWorker", "Deserializzazione completata.")
             Result.success()
         } else {
             val error = result.exceptionOrNull()?.message ?: "Errore sconosciuto"
