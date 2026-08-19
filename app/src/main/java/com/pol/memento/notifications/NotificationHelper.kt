@@ -56,7 +56,7 @@ class NotificationHelper(private val context: Context) {
         
         val pendingRestoreIntent = PendingIntent.getBroadcast(
             context, 
-            note.id, 
+            note.id.hashCode(), 
             restoreIntent, 
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -72,10 +72,10 @@ class NotificationHelper(private val context: Context) {
             .setOngoing(note.isPersistent)
 
         // Mostra la notifica usando l'ID univoco della nota
-        notificationManager.notify(note.id, builder.build())
+        notificationManager.notify(note.id.hashCode(), builder.build())
     }
 
-    fun cancelNotification(noteId: Int) {
-        notificationManager.cancel(noteId)
+    fun cancelNotification(noteId: String) {
+        notificationManager.cancel(noteId.hashCode())
     }
 }

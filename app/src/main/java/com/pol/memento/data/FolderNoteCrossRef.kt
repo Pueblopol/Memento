@@ -9,6 +9,6 @@ import androidx.room.Index
     indices = [Index(value = ["noteId"])]
 )
 data class FolderNoteCrossRef(
-    val folderId: Int,
-    val noteId: Int
+    val folderId: String,
+    val noteId: String
 )

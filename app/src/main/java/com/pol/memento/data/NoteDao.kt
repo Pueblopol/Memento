@@ -22,7 +22,7 @@ interface NoteDao {
     suspend fun updateNotes(notes: List<Note>)
 
     @Insert
-    suspend fun insertNote(note: Note): Long
+    suspend fun insertNote(note: Note)
 
     @Update
     suspend fun updateNote(note: Note)

@@ -32,7 +32,7 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-@Database(entities = [Note::class, Folder::class, FolderNoteCrossRef::class], version = 5, exportSchema = false)
+@Database(entities = [Note::class, Folder::class, FolderNoteCrossRef::class], version = 6, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun noteDao(): NoteDao

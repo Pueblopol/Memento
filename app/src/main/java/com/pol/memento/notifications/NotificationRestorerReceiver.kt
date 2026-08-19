@@ -8,8 +8,8 @@ import com.pol.memento.data.PriorityLevel
 
 class NotificationRestorerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val noteId = intent.getIntExtra("note_id", -1)
-        if (noteId != -1) {
+        val noteId = intent.getStringExtra("note_id")
+        if (noteId != null) {
             val title = intent.getStringExtra("note_title") ?: ""
             val desc = intent.getStringExtra("note_desc") ?: ""
             val priorityName = intent.getStringExtra("note_priority") ?: PriorityLevel.MEDIUM.name

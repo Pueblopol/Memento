@@ -106,13 +106,13 @@ fun FoldersScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
 
     var isCreatingFolder by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
-    var selectedNotesForNewFolder by remember { mutableStateOf(setOf<Int>()) }
-    var expandedFolderId by remember { mutableStateOf<Int?>(null) }
+    var selectedNotesForNewFolder by remember { mutableStateOf(setOf<String>()) }
+    var expandedFolderId by remember { mutableStateOf<String?>(null) }
     
     var folderBeingEdited by remember { mutableStateOf<FolderWithNotes?>(null) }
-    var selectedNotesForEditingFolder by remember { mutableStateOf(setOf<Int>()) }
+    var selectedNotesForEditingFolder by remember { mutableStateOf(setOf<String>()) }
 
-    var showFolderMenuId by remember { mutableStateOf<Int?>(null) }
+    var showFolderMenuId by remember { mutableStateOf<String?>(null) }
     var isRenamingFolder by remember { mutableStateOf(false) }
     var folderToRename by remember { mutableStateOf<com.pol.memento.data.Folder?>(null) }
     var renameFolderText by remember { mutableStateOf("") }

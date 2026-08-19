@@ -42,11 +42,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val foldersWithNotesList: StateFlow<List<com.pol.memento.data.FolderWithNotes>> = folderDao.getFoldersWithNotes()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun createFolder(name: String, noteIds: Set<Int>) {
+    fun createFolder(name: String, noteIds: Set<String>) {
         viewModelScope.launch {
-            val folderId = folderDao.insertFolder(com.pol.memento.data.Folder(name = name)).toInt()
+            val folder = com.pol.memento.data.Folder(name = name)
+            folderDao.insertFolder(folder)
             noteIds.forEach { noteId ->
-                folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folderId, noteId))
+                folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folder.id, noteId))
             }
         }
     }
@@ -69,13 +70,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun removeNoteFromFolder(folderId: Int, noteId: Int) {
+    fun removeNoteFromFolder(folderId: String, noteId: String) {
         viewModelScope.launch {
             folderDao.removeNoteFromFolder(folderId, noteId)
         }
     }
 
-    fun updateFolderNotes(folderId: Int, noteIds: Set<Int>) {
+    fun updateFolderNotes(folderId: String, noteIds: Set<String>) {
         viewModelScope.launch {
             folderDao.clearNotesForFolder(folderId)
             noteIds.forEach { noteId ->
@@ -102,14 +103,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isPinned = isPinned,
                 isPersistent = isPersistent
             )
-            val generatedId = dao.insertNote(newNote).toInt()
-            val noteWithId = newNote.copy(id = generatedId)
-            notificationHelper.showNotification(noteWithId)
+            dao.insertNote(newNote)
+            notificationHelper.showNotification(newNote)
         }
     }
 
     // Funzione per salvare una nuova nota dal foglio (con cartella)
-    fun addNoteFromSheet(title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean, folderId: Int?) {
+    fun addNoteFromSheet(title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean, folderId: String?) {
         viewModelScope.launch {
             val newNote = Note(
                 title = title,
@@ -118,14 +118,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isPinned = isPinned,
                 isPersistent = isPersistent
             )
-            val generatedId = dao.insertNote(newNote).toInt()
+            dao.insertNote(newNote)
 
             if (folderId != null) {
-                folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folderId, generatedId))
+                folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folderId, newNote.id))
             }
 
-            val noteWithId = newNote.copy(id = generatedId)
-            notificationHelper.showNotification(noteWithId)
+            notificationHelper.showNotification(newNote)
         }
     }
 
@@ -152,7 +151,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Funzione per aggiornare una nota esistente dal foglio (con cartella)
-    fun updateNoteFromSheet(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean, folderId: Int?) {
+    fun updateNoteFromSheet(note: Note, title: String, description: String, priority: PriorityLevel, isPinned: Boolean, isPersistent: Boolean, folderId: String?) {
         viewModelScope.launch {
             val updatedNote = note.copy(
                 title = title,

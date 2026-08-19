@@ -63,8 +63,8 @@ fun AddNoteContent(
     noteToEdit: Note?,
     initialPriority: PriorityLevel,
     folders: List<com.pol.memento.data.Folder>,
-    initialFolderId: Int?,
-    onSave: (String, String, PriorityLevel, Boolean, Boolean, Int?) -> Unit,
+    initialFolderId: String?,
+    onSave: (String, String, PriorityLevel, Boolean, Boolean, String?) -> Unit,
     onCancel: () -> Unit
 ) {
     // Variabili temporanee in cui l'utente scrive prima di salvare
