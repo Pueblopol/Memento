@@ -22,6 +22,35 @@ class MarkdownSyncEngine(
         return if (safeTitle.isEmpty()) "Senza Titolo" else safeTitle
     }
 
+    private fun findFileByNoteId(noteId: String): File? {
+        if (!repoDir.exists()) return null
+        val files = repoDir.listFiles { _, name -> name.endsWith(".md") } ?: return null
+        for (file in files) {
+            try {
+                // Leggiamo solo l'intestazione YAML per essere super veloci
+                val reader = file.bufferedReader()
+                var line = reader.readLine()
+                if (line?.trim() == "---") {
+                    var foundId = false
+                    for (i in 0..10) {
+                        line = reader.readLine() ?: break
+                        if (line.trim() == "---") break
+                        if (line.startsWith("id:") && line.substringAfter(":").trim().removeSurrounding("\"") == noteId) {
+                            foundId = true
+                            break
+                        }
+                    }
+                    if (foundId) {
+                        reader.close()
+                        return file
+                    }
+                }
+                reader.close()
+            } catch (e: Exception) { /* ignore */ }
+        }
+        return null
+    }
+
     /**
      * Salva una singola nota nel file system clonato, nella cartella specificata dal suo primo tag (o root).
      */
@@ -30,11 +59,12 @@ class MarkdownSyncEngine(
             if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
 
             val markdownContent = MarkdownSerializer.serializeNote(note, folderNames)
-            // Trova eventuali file vecchi con lo stesso ID (in caso di rinomina del titolo)
-            val oldFiles = repoDir.listFiles { _, name -> name.endsWith("_${note.id.take(8)}.md") }
-            oldFiles?.forEach { it.delete() }
             
-            val filename = "${getSanitizedFilename(note.title)}_${note.id.take(8)}.md"
+            // Trova l'eventuale file vecchio (se il titolo è stato cambiato)
+            val oldFile = findFileByNoteId(note.id)
+            oldFile?.delete()
+            
+            val filename = "${getSanitizedFilename(note.title)}.md"
             val file = File(repoDir, filename)
             
             file.writeText(markdownContent)
@@ -56,10 +86,10 @@ class MarkdownSyncEngine(
         try {
             if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
 
-            val filesToDelete = repoDir.listFiles { _, name -> name.endsWith("_${note.id.take(8)}.md") }
-            filesToDelete?.forEach { file ->
-                val filename = file.name
-                file.delete()
+            val oldFile = findFileByNoteId(note.id)
+            if (oldFile != null) {
+                val filename = oldFile.name
+                oldFile.delete()
                 // git rm
                 Git.open(repoDir).use { git ->
                     git.rm().addFilepattern(filename).call()
@@ -178,6 +208,8 @@ class MarkdownSyncEngine(
             Git.open(repoDir).use { git ->
                 // git add .
                 git.add().addFilepattern(".").call()
+                // stage deletions
+                git.add().setUpdate(true).addFilepattern(".").call()
                 
                 // git commit -m
                 git.commit().setMessage(commitMessage).call()
@@ -310,10 +342,10 @@ class MarkdownSyncEngine(
                 val folderNames = allFolders.filter { it.notes.any { n -> n.id == note.id } }.map { it.folder.name }
                 val markdownContent = MarkdownSerializer.serializeNote(note, folderNames)
                 
-                val oldFiles = repoDir.listFiles { _, name -> name.endsWith("_${note.id.take(8)}.md") }
-                oldFiles?.forEach { it.delete() }
+                val oldFile = findFileByNoteId(note.id)
+                oldFile?.delete()
                 
-                val filename = "${getSanitizedFilename(note.title)}_${note.id.take(8)}.md"
+                val filename = "${getSanitizedFilename(note.title)}.md"
                 val file = File(repoDir, filename)
                 file.writeText(markdownContent)
             }
