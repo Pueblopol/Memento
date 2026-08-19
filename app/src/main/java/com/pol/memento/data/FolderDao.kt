@@ -27,10 +27,10 @@ interface FolderDao {
     @Update
     suspend fun updateFolder(folder: Folder)
 
-    @Insert
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
     suspend fun insertFolder(folder: Folder)
 
-    @Insert
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
     suspend fun insertFolderNoteCrossRef(crossRef: FolderNoteCrossRef)
 
     @Query("DELETE FROM folder_note_cross_ref WHERE folderId = :folderId")

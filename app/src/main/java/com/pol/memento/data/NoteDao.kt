@@ -21,7 +21,7 @@ interface NoteDao {
     @Update
     suspend fun updateNotes(notes: List<Note>)
 
-    @Insert
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
     suspend fun insertNote(note: Note)
 
     @Update
