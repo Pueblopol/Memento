@@ -19,6 +19,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val folderDao = AppDatabase.getDatabase(application).folderDao()
     private val notificationHelper = NotificationHelper(application)
     private val settingsRepo = com.pol.memento.data.SettingsRepository(application)
+    val gitSettingsRepo = com.pol.memento.data.GitSettingsRepository(application)
 
     // Flussi di stato per le impostazioni
     val isDarkMode: StateFlow<Boolean?> = settingsRepo.isDarkMode

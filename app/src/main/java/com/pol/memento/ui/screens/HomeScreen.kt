@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
@@ -81,7 +82,8 @@ fun MainScreen(
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
     onNavigateToFolders: () -> Unit,
-    onNavigateToArchive: () -> Unit
+    onNavigateToArchive: () -> Unit,
+    onNavigateToGitSync: () -> Unit
 ) {
     // Raccogliamo la lista delle note dal database in tempo reale
     val notes by viewModel.notesList.collectAsState()
@@ -470,6 +472,20 @@ fun MainScreen(
                         PriorityButton("Alta", Color(0xFFE53935), defaultPriority == PriorityLevel.HIGH) { viewModel.setDefaultPriority(PriorityLevel.HIGH) }
                         PriorityButton("Media", Color(0xFF4CAF50), defaultPriority == PriorityLevel.MEDIUM) { viewModel.setDefaultPriority(PriorityLevel.MEDIUM) }
                         PriorityButton("Bassa", Color(0xFF2979FF), defaultPriority == PriorityLevel.LOW) { viewModel.setDefaultPriority(PriorityLevel.LOW) }
+                    }
+
+                    HorizontalDivider()
+
+                    // Sincronizzazione Git
+                    Text("Cloud Sync", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    Button(
+                        onClick = { 
+                            showSettingsDialog = false
+                            onNavigateToGitSync()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Configura Sincronizzazione Git")
                     }
                 }
             },

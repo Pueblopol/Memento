@@ -94,40 +94,52 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(viewModel: MainViewModel, isDarkMode: Boolean, onDarkModeChange: (Boolean) -> Unit) {
-    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-        initialPage = 1,
-        pageCount = { 3 }
-    )
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    var showGitSyncScreen by androidx.compose.runtime.remember { mutableStateOf(false) }
 
-    androidx.activity.compose.BackHandler(enabled = pagerState.currentPage != 1) {
-        coroutineScope.launch {
-            pagerState.animateScrollToPage(1)
+    if (showGitSyncScreen) {
+        com.pol.memento.ui.screens.GitSyncScreen(
+            viewModel = viewModel,
+            onNavigateBack = { showGitSyncScreen = false }
+        )
+    } else {
+        val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+            initialPage = 1,
+            pageCount = { 3 }
+        )
+        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+        androidx.activity.compose.BackHandler(enabled = pagerState.currentPage != 1) {
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(1)
+            }
         }
-    }
 
-    androidx.compose.foundation.pager.HorizontalPager(
-        state = pagerState,
-        modifier = Modifier.fillMaxSize()
-    ) { page ->
-        when (page) {
-            0 -> FoldersScreen(viewModel, onNavigateBack = { 
-                coroutineScope.launch { pagerState.animateScrollToPage(1) } 
-            })
-            1 -> MainScreen(
-                viewModel, 
-                isDarkMode, 
-                onDarkModeChange, 
-                onNavigateToFolders = { 
-                    coroutineScope.launch { pagerState.animateScrollToPage(0) } 
-                }, 
-                onNavigateToArchive = { 
-                    coroutineScope.launch { pagerState.animateScrollToPage(2) } 
-                }
-            )
-            2 -> ArchiveScreen(viewModel, onNavigateBack = { 
-                coroutineScope.launch { pagerState.animateScrollToPage(1) } 
-            })
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            when (page) {
+                0 -> FoldersScreen(viewModel, onNavigateBack = { 
+                    coroutineScope.launch { pagerState.animateScrollToPage(1) } 
+                })
+                1 -> MainScreen(
+                    viewModel, 
+                    isDarkMode, 
+                    onDarkModeChange, 
+                    onNavigateToFolders = { 
+                        coroutineScope.launch { pagerState.animateScrollToPage(0) } 
+                    }, 
+                    onNavigateToArchive = { 
+                        coroutineScope.launch { pagerState.animateScrollToPage(2) } 
+                    },
+                    onNavigateToGitSync = {
+                        showGitSyncScreen = true
+                    }
+                )
+                2 -> ArchiveScreen(viewModel, onNavigateBack = { 
+                    coroutineScope.launch { pagerState.animateScrollToPage(1) } 
+                })
+            }
         }
     }
 }
