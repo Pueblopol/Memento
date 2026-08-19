@@ -107,6 +107,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             dao.insertNote(newNote)
             notificationHelper.showNotification(newNote)
+            syncNoteSave(newNote, false)
         }
     }
 
@@ -127,6 +128,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             notificationHelper.showNotification(newNote)
+            syncNoteSave(newNote, false, folderId)
         }
     }
 
@@ -149,6 +151,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             dao.updateNote(updatedNote)
             notificationHelper.showNotification(updatedNote)
+            syncNoteSave(updatedNote, true)
         }
     }
 
@@ -170,6 +173,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             notificationHelper.showNotification(updatedNote)
+            syncNoteSave(updatedNote, true, folderId)
         }
     }
 
@@ -188,6 +192,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dao.deleteNote(note)
             notificationHelper.cancelNotification(note.id)
+            syncEngine.deleteNote(note)
         }
     }
 
@@ -198,6 +203,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (!note.isCompleted && note.isPersistent) {
                 notificationHelper.showNotification(note)
             }
+            syncNoteSave(note, false)
         }
     }
 
@@ -206,6 +212,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val updatedNote = note.copy(isPinned = !note.isPinned)
             dao.updateNote(updatedNote)
+            syncNoteSave(updatedNote, true)
         }
     }
     
@@ -232,6 +239,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val updatedNote = note.copy(isCompleted = true)
             dao.updateNote(updatedNote)
             notificationHelper.cancelNotification(updatedNote.id)
+            syncNoteSave(updatedNote, true)
         }
     }
 
@@ -240,6 +248,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val updatedNote = note.copy(isCompleted = false)
             dao.updateNote(updatedNote)
             notificationHelper.showNotification(updatedNote)
+            syncNoteSave(updatedNote, true)
         }
+    }
+
+    private suspend fun syncNoteSave(note: Note, isUpdate: Boolean, folderIdOverride: String? = null) {
+        val folderNames = mutableListOf<String>()
+        if (folderIdOverride != null) {
+            val folder = folderDao.getFolderById(folderIdOverride)
+            folder?.let { folderNames.add(it.name) }
+        } else {
+            val currentFolders = foldersWithNotesList.value
+                .filter { it.notes.any { n -> n.id == note.id } }
+                .map { it.folder.name }
+            folderNames.addAll(currentFolders)
+        }
+        syncEngine.saveNote(note, folderNames, isUpdate)
     }
 }

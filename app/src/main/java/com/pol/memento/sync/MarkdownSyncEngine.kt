@@ -16,6 +16,64 @@ class MarkdownSyncEngine(
     // La cartella locale dove risiederà il repository clonato
     private val repoDir = File(context.filesDir, "memento_sync")
 
+    private fun getSanitizedFilename(title: String): String {
+        val safeTitle = title.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
+        return if (safeTitle.isEmpty()) "Senza Titolo" else safeTitle
+    }
+
+    /**
+     * Salva una singola nota nel file system clonato, nella cartella specificata dal suo primo tag (o root).
+     */
+    suspend fun saveNote(note: com.pol.memento.data.Note, folderNames: List<String>, isUpdate: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
+
+            val markdownContent = MarkdownSerializer.serializeNote(note, folderNames)
+            // Trova eventuali file vecchi con lo stesso ID (in caso di rinomina del titolo)
+            val oldFiles = repoDir.listFiles { _, name -> name.endsWith("_${note.id.take(8)}.md") }
+            oldFiles?.forEach { it.delete() }
+            
+            val filename = "${getSanitizedFilename(note.title)}_${note.id.take(8)}.md"
+            val file = File(repoDir, filename)
+            
+            file.writeText(markdownContent)
+            
+            val actionName = if (isUpdate) "Update note" else "Create note"
+            commitAndPush("$actionName: ${note.title}")
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(Exception("Errore salvataggio nota: ${e.message}"))
+        }
+    }
+
+    /**
+     * Elimina una nota dal file system e fa commit.
+     */
+    suspend fun deleteNote(note: com.pol.memento.data.Note): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
+
+            val filesToDelete = repoDir.listFiles { _, name -> name.endsWith("_${note.id.take(8)}.md") }
+            filesToDelete?.forEach { file ->
+                val filename = file.name
+                file.delete()
+                // git rm
+                Git.open(repoDir).use { git ->
+                    git.rm().addFilepattern(filename).call()
+                }
+            }
+            
+            commitAndPush("Delete note: ${note.title}")
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(Exception("Errore eliminazione nota: ${e.message}"))
+        }
+    }
+
     /**
      * Clona il repository specificato. Se la cartella esiste già, la svuota prima di clonare.
      */

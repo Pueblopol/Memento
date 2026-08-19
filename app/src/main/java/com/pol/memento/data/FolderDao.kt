@@ -14,6 +14,9 @@ interface FolderDao {
     @Query("SELECT * FROM folders ORDER BY position ASC, createdAt DESC")
     fun getAllFolders(): Flow<List<Folder>>
 
+    @Query("SELECT * FROM folders WHERE id = :folderId")
+    suspend fun getFolderById(folderId: String): Folder?
+
     @Transaction
     @Query("SELECT * FROM folders ORDER BY position ASC, createdAt DESC")
     fun getFoldersWithNotes(): Flow<List<FolderWithNotes>>
