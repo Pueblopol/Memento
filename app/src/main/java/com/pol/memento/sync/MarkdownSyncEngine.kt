@@ -24,7 +24,7 @@ class MarkdownSyncEngine(
 
     private fun findFileByNoteId(noteId: String): File? {
         if (!repoDir.exists()) return null
-        val files = repoDir.listFiles { _, name -> name.endsWith(".md") } ?: return null
+        val files = repoDir.walkTopDown().filter { it.isFile && it.name.endsWith(".md") }.toList()
         for (file in files) {
             try {
                 // Leggiamo solo l'intestazione YAML per essere super veloci
@@ -64,8 +64,16 @@ class MarkdownSyncEngine(
             val oldFile = findFileByNoteId(note.id)
             oldFile?.delete()
             
+            val subDir = if (folderNames.isNotEmpty()) {
+                val dir = File(repoDir, getSanitizedFilename(folderNames.first()))
+                if (!dir.exists()) dir.mkdirs()
+                dir
+            } else {
+                repoDir
+            }
+            
             val filename = "${getSanitizedFilename(note.title)}.md"
-            val file = File(repoDir, filename)
+            val file = File(subDir, filename)
             
             file.writeText(markdownContent)
             
@@ -87,14 +95,7 @@ class MarkdownSyncEngine(
             if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
 
             val oldFile = findFileByNoteId(note.id)
-            if (oldFile != null) {
-                val filename = oldFile.name
-                oldFile.delete()
-                // git rm
-                Git.open(repoDir).use { git ->
-                    git.rm().addFilepattern(filename).call()
-                }
-            }
+            oldFile?.delete()
             
             commitAndPush("Delete note: ${note.title}")
             
@@ -272,7 +273,7 @@ class MarkdownSyncEngine(
         try {
             if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
 
-            val mdFiles = repoDir.listFiles { _, name -> name.endsWith(".md") } ?: emptyArray()
+            val mdFiles = repoDir.walkTopDown().filter { it.isFile && it.name.endsWith(".md") }.toList()
             
             // Per gestire cancellazioni (file rimossi dal PC), leggiamo tutte le note attuali
             val dbNotes = noteDao.getAllNotes().first()
@@ -321,7 +322,7 @@ class MarkdownSyncEngine(
 
     fun getMarkdownFilesCount(): Int {
         if (!repoDir.exists()) return 0
-        return repoDir.listFiles { _, name -> name.endsWith(".md") }?.size ?: 0
+        return repoDir.walkTopDown().count { it.isFile && it.name.endsWith(".md") }
     }
 
     /**
@@ -345,8 +346,16 @@ class MarkdownSyncEngine(
                 val oldFile = findFileByNoteId(note.id)
                 oldFile?.delete()
                 
+                val subDir = if (folderNames.isNotEmpty()) {
+                    val dir = File(repoDir, getSanitizedFilename(folderNames.first()))
+                    if (!dir.exists()) dir.mkdirs()
+                    dir
+                } else {
+                    repoDir
+                }
+                
                 val filename = "${getSanitizedFilename(note.title)}.md"
-                val file = File(repoDir, filename)
+                val file = File(subDir, filename)
                 file.writeText(markdownContent)
             }
 
