@@ -277,4 +277,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             syncEngine.syncDatabaseWithFiles(dao, folderDao)
         }
     }
+
+    fun manualSync(onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            val repoUrl = gitSettingsRepo.getRepoUrl() ?: ""
+            val username = gitSettingsRepo.getUsername() ?: ""
+            val pat = gitSettingsRepo.getPat() ?: ""
+            
+            if (repoUrl.isBlank() || pat.isBlank()) {
+                onResult("Configura GitHub nelle impostazioni prima di sincronizzare")
+                return@launch
+            }
+            
+            val pullResult = syncEngine.syncAll()
+            if (pullResult.isSuccess) {
+                val dbResult = syncEngine.syncDatabaseWithFiles(dao, folderDao)
+                if (dbResult.isSuccess) {
+                    onResult("Sincronizzazione completata con successo!")
+                } else {
+                    onResult("Errore db: ${dbResult.exceptionOrNull()?.message}")
+                }
+            } else {
+                val cloneResult = syncEngine.cloneRepo(repoUrl, username, pat)
+                if (cloneResult.isSuccess) {
+                    initialSyncAfterClone()
+                    onResult("Repo clonato e sincronizzazione completata!")
+                } else {
+                    onResult("Errore di sincronizzazione: ${cloneResult.exceptionOrNull()?.message}")
+                }
+            }
+        }
+    }
 }

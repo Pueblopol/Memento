@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -167,6 +169,29 @@ fun MainScreen(
                     }
                 },
                 actions = {
+                    var isSyncing by remember { mutableStateOf(false) }
+                    IconButton(
+                        onClick = {
+                            isSyncing = true
+                            viewModel.manualSync { message ->
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(message)
+                                    isSyncing = false
+                                }
+                            }
+                        },
+                        enabled = !isSyncing
+                    ) {
+                        if (isSyncing) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Sync, contentDescription = "Sincronizza Git")
+                        }
+                    }
                     IconButton(onClick = { 
                         isSearchActive = !isSearchActive 
                         if (!isSearchActive) searchQuery = ""
