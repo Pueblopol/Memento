@@ -51,6 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             noteIds.forEach { noteId ->
                 folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folder.id, noteId))
             }
+            syncEngine.createPhysicalFolder(name)
         }
     }
 

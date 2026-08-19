@@ -360,11 +360,35 @@ class MarkdownSyncEngine(
             if (filesRewritten) {
                 commitAndPush("Auto-format: aggiunta intestazione YAML alle nuove note da PC")
             }
+
+            // Pulizia cartelle vuote: se una cartella nel DB non ha note e non esiste fisicamente in repoDir,
+            // significa che è stata eliminata da GitHub (o che git l'ha rimossa perché svuotata).
+            val foldersWithNotes = folderDao.getFoldersWithNotes().first()
+            val physicalDirs = repoDir.listFiles { it.isDirectory && it.name != ".git" }?.map { it.name } ?: emptyList()
+            for (fwn in foldersWithNotes) {
+                if (fwn.notes.isEmpty() && !physicalDirs.contains(fwn.folder.name)) {
+                    folderDao.deleteFolder(fwn.folder)
+                }
+            }
             
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.failure(Exception("Errore durante la deserializzazione: ${e.message}"))
+            Result.failure(Exception("Errore sync con db: ${e.message}"))
+        }
+    }
+
+    /**
+     * Crea una directory fisica per una nuova cartella vuota in modo che resista ai sync.
+     */
+    fun createPhysicalFolder(folderName: String) {
+        try {
+            if (repoDir.exists()) {
+                val dir = File(repoDir, getSanitizedFilename(folderName))
+                if (!dir.exists()) dir.mkdirs()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
