@@ -116,6 +116,9 @@ fun AppNavigation(viewModel: MainViewModel, isDarkMode: Boolean, onDarkModeChang
     var showGitSyncScreen by androidx.compose.runtime.remember { mutableStateOf(false) }
 
     if (showGitSyncScreen) {
+        androidx.activity.compose.BackHandler {
+            showGitSyncScreen = false
+        }
         com.pol.memento.ui.screens.GitSyncScreen(
             viewModel = viewModel,
             onNavigateBack = { showGitSyncScreen = false }
