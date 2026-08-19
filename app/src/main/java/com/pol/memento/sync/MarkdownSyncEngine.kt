@@ -168,4 +168,39 @@ class MarkdownSyncEngine(
             Result.failure(Exception("Errore durante commit e push: ${e.message}"))
         }
     }
+
+    /**
+     * Esegue solo un `git push` per caricare le modifiche locali sul remoto.
+     */
+    suspend fun pushOnly(): Result<Unit> = withContext(Dispatchers.IO) {
+        val username = gitSettings.getUsername()
+        val pat = gitSettings.getPat()
+
+        if (username.isNullOrBlank() || pat.isNullOrBlank()) {
+            return@withContext Result.failure(Exception("Credenziali Git non configurate."))
+        }
+
+        try {
+            val credentials = UsernamePasswordCredentialsProvider(username, pat)
+            Git.open(repoDir).use { git ->
+                git.push()
+                    .setCredentialsProvider(credentials)
+                    .call()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(Exception("Errore durante push: ${e.message}"))
+        }
+    }
+
+    /**
+     * Esegue l'intero ciclo di sincronizzazione: Pull Rebase -> Push.
+     */
+    suspend fun syncAll(): Result<Unit> = withContext(Dispatchers.IO) {
+        val pullRes = pullRebase()
+        if (pullRes.isFailure) return@withContext pullRes
+        
+        return@withContext pushOnly()
+    }
 }

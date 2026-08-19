@@ -69,4 +69,6 @@ dependencies {
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
     // Libreria per Sicurezza (Token Git in EncryptedSharedPreferences)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // Libreria per WorkManager (Sincronizzazione in Background)
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
 }

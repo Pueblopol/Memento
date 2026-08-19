@@ -52,6 +52,25 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            // Schedule Git Sync via WorkManager
+            LaunchedEffect(Unit) {
+                val constraints = androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+                    
+                val syncWorkRequest = androidx.work.PeriodicWorkRequestBuilder<com.pol.memento.sync.SyncWorker>(
+                    15, java.util.concurrent.TimeUnit.MINUTES
+                )
+                    .setConstraints(constraints)
+                    .build()
+                    
+                androidx.work.WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                    "MementoGitSync",
+                    androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                    syncWorkRequest
+                )
+            }
+
             val isDarkModeState by viewModel.isDarkMode.collectAsState()
             
             // Se il DataStore sta ancora caricando dal disco, non renderizziamo nulla
