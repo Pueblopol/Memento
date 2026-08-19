@@ -127,12 +127,36 @@ class MarkdownSyncEngine(
                     .call()
                 
                 if (pullResult.isSuccessful) {
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception("Conflitti o errore nel pull rebase."))
+                    return@withContext Result.success(Unit)
                 }
+                
+                // Gestione conflitti: se c'è un conflitto, abortiamo il rebase e favoriamo la versione remota (più recente sul cloud)
+                val status = pullResult.rebaseResult?.status
+                if (status != null && status != org.eclipse.jgit.api.RebaseResult.Status.OK) {
+                    try {
+                        git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
+                        // Resetta hard alla versione remota scaricata
+                        git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).setRef("FETCH_HEAD").call()
+                        return@withContext Result.success(Unit)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        return@withContext Result.failure(Exception("Impossibile risolvere il conflitto: ${e.message}"))
+                    }
+                }
+
+                return@withContext Result.failure(Exception("Errore nel pull rebase: ${status?.name}"))
             }
         } catch (e: Exception) {
+            // Se eravamo in rebasing e c'è stata un'eccezione, proviamo ad abortire
+            try {
+                Git.open(repoDir).use { git ->
+                    if (git.repository.repositoryState != org.eclipse.jgit.lib.RepositoryState.SAFE) {
+                        git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
+                        git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).setRef("FETCH_HEAD").call()
+                    }
+                }
+            } catch (ignore: Exception) {}
+            
             e.printStackTrace()
             Result.failure(Exception("Errore durante il pull: ${e.message}"))
         }
@@ -246,9 +270,13 @@ class MarkdownSyncEngine(
             }.toSet()
             
             // Delete notes from DB that no longer exist in Git
-            for (dbNote in dbNotes) {
-                if (!existingIds.contains(dbNote.id)) {
-                    noteDao.deleteNote(dbNote)
+            // Safeguard: non cancelliamo nulla se la cartella Git non contiene alcun markdown
+            // Questo previene di cancellare tutto il DB locale se cloniamo un repo vuoto appena creato su Github.
+            if (mdFiles.isNotEmpty()) {
+                for (dbNote in dbNotes) {
+                    if (!existingIds.contains(dbNote.id)) {
+                        noteDao.deleteNote(dbNote)
+                    }
                 }
             }
 
