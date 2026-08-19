@@ -277,8 +277,9 @@ class MarkdownSyncEngine(
             
             // Per gestire cancellazioni (file rimossi dal PC), leggiamo tutte le note attuali
             val dbNotes = noteDao.getAllNotes().first()
+            var filesRewritten = false
             val existingIds = mdFiles.mapNotNull { file ->
-                val parsed = MarkdownDeserializer.deserialize(file.readText())
+                val parsed = MarkdownDeserializer.deserialize(file.readText(), file.nameWithoutExtension)
                 if (parsed != null) {
                     // Update/Insert note
                     noteDao.insertNote(parsed.note) // insertNote has OnConflictStrategy.REPLACE
@@ -298,6 +299,26 @@ class MarkdownSyncEngine(
                             com.pol.memento.data.FolderNoteCrossRef(folder.id, parsed.note.id)
                         )
                     }
+                    
+                    if (parsed.needsRewrite) {
+                        val markdownContent = MarkdownSerializer.serializeNote(parsed.note, parsed.folderNames)
+                        val subDir = if (parsed.folderNames.isNotEmpty()) {
+                            val dir = File(repoDir, getSanitizedFilename(parsed.folderNames.first()))
+                            if (!dir.exists()) dir.mkdirs()
+                            dir
+                        } else {
+                            repoDir
+                        }
+                        val filename = "${getSanitizedFilename(parsed.note.title)}.md"
+                        val newFile = File(subDir, filename)
+                        
+                        if (file.absolutePath != newFile.absolutePath) {
+                            file.delete()
+                        }
+                        newFile.writeText(markdownContent)
+                        filesRewritten = true
+                    }
+                    
                     parsed.note.id
                 } else null
             }.toSet()
@@ -313,6 +334,10 @@ class MarkdownSyncEngine(
                 }
             }
 
+            if (filesRewritten) {
+                commitAndPush("Auto-format: aggiunta intestazione YAML alle nuove note da PC")
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
