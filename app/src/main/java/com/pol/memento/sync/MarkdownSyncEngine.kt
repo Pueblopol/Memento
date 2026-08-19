@@ -284,12 +284,35 @@ class MarkdownSyncEngine(
                     // Update/Insert note
                     noteDao.insertNote(parsed.note) // insertNote has OnConflictStrategy.REPLACE
                     
+                    val pFile = file.parentFile
+                    val physicalFolder = if (pFile != null && pFile.absolutePath != repoDir.absolutePath) {
+                        pFile.name
+                    } else null
+
+                    val finalFolderNames = parsed.folderNames.toMutableList()
+                    var needsRewrite = parsed.needsRewrite
+
+                    if (physicalFolder != null) {
+                        if (!finalFolderNames.contains(physicalFolder)) {
+                            // Spostato in una nuova cartella da GitHub: la facciamo diventare la cartella principale
+                            finalFolderNames.clear()
+                            finalFolderNames.add(physicalFolder)
+                            needsRewrite = true
+                        }
+                    } else {
+                        if (finalFolderNames.isNotEmpty()) {
+                            // Spostato nella root (nessuna cartella) da GitHub
+                            finalFolderNames.clear()
+                            needsRewrite = true
+                        }
+                    }
+
                     // Manage folders (create them if they don't exist)
                     folderDao.removeNoteFromAllFolders(parsed.note.id)
                     
                     // Read current folders to find matching names
                     val allFolders = folderDao.getAllFolders().first()
-                    for (fName in parsed.folderNames) {
+                    for (fName in finalFolderNames) {
                         var folder = allFolders.find { it.name == fName }
                         if (folder == null) {
                             folder = com.pol.memento.data.Folder(name = fName)
@@ -300,10 +323,10 @@ class MarkdownSyncEngine(
                         )
                     }
                     
-                    if (parsed.needsRewrite) {
-                        val markdownContent = MarkdownSerializer.serializeNote(parsed.note, parsed.folderNames)
-                        val subDir = if (parsed.folderNames.isNotEmpty()) {
-                            val dir = File(repoDir, getSanitizedFilename(parsed.folderNames.first()))
+                    if (needsRewrite) {
+                        val markdownContent = MarkdownSerializer.serializeNote(parsed.note, finalFolderNames)
+                        val subDir = if (finalFolderNames.isNotEmpty()) {
+                            val dir = File(repoDir, getSanitizedFilename(finalFolderNames.first()))
                             if (!dir.exists()) dir.mkdirs()
                             dir
                         } else {
