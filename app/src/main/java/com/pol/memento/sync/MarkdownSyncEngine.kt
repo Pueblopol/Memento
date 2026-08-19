@@ -286,4 +286,46 @@ class MarkdownSyncEngine(
             Result.failure(Exception("Errore durante la deserializzazione: ${e.message}"))
         }
     }
+
+    fun getMarkdownFilesCount(): Int {
+        if (!repoDir.exists()) return 0
+        return repoDir.listFiles { _, name -> name.endsWith(".md") }?.size ?: 0
+    }
+
+    /**
+     * Esporta tutte le note del database nel repository Git e fa un singolo commit/push.
+     * Utile subito dopo aver clonato un repository vuoto.
+     */
+    suspend fun exportAllToGit(
+        noteDao: com.pol.memento.data.NoteDao, 
+        folderDao: com.pol.memento.data.FolderDao
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
+
+            val dbNotes = noteDao.getAllNotes().first()
+            val allFolders = folderDao.getFoldersWithNotes().first()
+
+            for (note in dbNotes) {
+                val folderNames = allFolders.filter { it.notes.any { n -> n.id == note.id } }.map { it.folder.name }
+                val markdownContent = MarkdownSerializer.serializeNote(note, folderNames)
+                
+                val oldFiles = repoDir.listFiles { _, name -> name.endsWith("_${note.id.take(8)}.md") }
+                oldFiles?.forEach { it.delete() }
+                
+                val filename = "${getSanitizedFilename(note.title)}_${note.id.take(8)}.md"
+                val file = File(repoDir, filename)
+                file.writeText(markdownContent)
+            }
+
+            if (dbNotes.isNotEmpty()) {
+                commitAndPush("Initial export: ${dbNotes.size} notes")
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(Exception("Errore durante l'esportazione di massa: ${e.message}"))
+        }
+    }
 }

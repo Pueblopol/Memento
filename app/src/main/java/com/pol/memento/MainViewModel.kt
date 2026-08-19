@@ -265,4 +265,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         syncEngine.saveNote(note, folderNames, isUpdate)
     }
+
+    suspend fun initialSyncAfterClone() {
+        val mdFiles = syncEngine.getMarkdownFilesCount()
+        if (mdFiles == 0) {
+            // Repo vuoto: esporta tutte le note locali
+            syncEngine.exportAllToGit(dao, folderDao)
+        } else {
+            // Repo con dati: importa le note in locale
+            syncEngine.syncDatabaseWithFiles(dao, folderDao)
+        }
+    }
 }

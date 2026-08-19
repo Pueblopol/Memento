@@ -132,13 +132,14 @@ fun GitSyncScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         isCloning = true
                         coroutineScope.launch {
                             val result = viewModel.syncEngine.cloneRepo(repoUrl.trim(), username.trim(), pat.trim())
-                            isCloning = false
                             if (result.isSuccess) {
+                                viewModel.initialSyncAfterClone()
                                 gitRepo.saveGitCredentials(repoUrl.trim(), username.trim(), pat.trim())
-                                snackbarHostState.showSnackbar("Repo clonato e credenziali salvate con successo!")
+                                snackbarHostState.showSnackbar("Repo clonato e note sincronizzate con successo!")
                             } else {
                                 snackbarHostState.showSnackbar(result.exceptionOrNull()?.message ?: "Errore durante la clonazione")
                             }
+                            isCloning = false
                         }
                     }
                 },
