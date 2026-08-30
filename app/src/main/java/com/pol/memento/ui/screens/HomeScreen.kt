@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.foundation.layout.size
@@ -128,14 +130,13 @@ fun MainScreen(
         }
         
         newList = newList.sortedWith(
-            compareByDescending<Note> { it.isPinned }
-                .thenBy { 
-                    when (it.priority) {
-                        PriorityLevel.HIGH -> 1
-                        PriorityLevel.MEDIUM -> 2
-                        PriorityLevel.LOW -> 3
-                    }
+            compareBy<Note> { 
+                when (it.priority) {
+                    PriorityLevel.HIGH -> 1
+                    PriorityLevel.MEDIUM -> 2
+                    PriorityLevel.LOW -> 3
                 }
+            }.thenByDescending { it.isPinned }
         ).toMutableList()
         localNotes = newList
     }
@@ -159,6 +160,12 @@ fun MainScreen(
                 },
                 navigationIcon = {
                     Row {
+                        IconButton(onClick = { viewModel.setGridView(!isGridView) }) {
+                            Icon(
+                                if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                                contentDescription = "Cambia layout"
+                            )
+                        }
                         IconButton(onClick = { showFilterDialog = true }) {
                             Icon(
                                 Icons.Default.FilterAlt, 

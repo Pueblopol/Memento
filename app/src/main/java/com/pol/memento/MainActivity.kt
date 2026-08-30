@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
 
             val isDarkMode = isDarkModeState!!
 
+            
             com.pol.memento.ui.theme.MementoTheme(
                 darkTheme = isDarkMode,
                 dynamicColor = true

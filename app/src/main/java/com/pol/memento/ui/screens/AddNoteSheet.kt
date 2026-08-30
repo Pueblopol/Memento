@@ -148,8 +148,10 @@ fun AddNoteContent(
                     val oldText = description.text
                     val newText = newValue.text
 
-                    if (newText.length == oldText.length + 1 && newValue.selection.min == newValue.selection.max) {
-                        val cursor = newValue.selection.min
+                    val cursor = newValue.selection.min
+                    val isNewlineInserted = cursor > 0 && newText.length > oldText.length && newText[cursor - 1] == '\n'
+                    
+                    if (isNewlineInserted && newValue.selection.min == newValue.selection.max) {
                         if (cursor > 0 && newText[cursor - 1] == '\n') {
                             val textBeforeNewline = newText.substring(0, cursor - 1)
                             val previousLine = textBeforeNewline.substringAfterLast('\n')
@@ -168,33 +170,33 @@ fun AddNoteContent(
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
                                     val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = TextFieldValue(newStr, TextRange(startOfPrevLine))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
                                 } else {
                                     val prefix = "${num + 1}. "
                                     val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = TextFieldValue(newStr, TextRange(cursor + prefix.length))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
                                 }
                             } else if (bulletMatch != null) {
                                 val content = bulletMatch.groupValues[2]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
                                     val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = TextFieldValue(newStr, TextRange(startOfPrevLine))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
                                 } else {
                                     val prefix = "• "
                                     val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = TextFieldValue(newStr, TextRange(cursor + prefix.length))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
                                 }
                             } else if (checkMatch != null) {
                                 val content = checkMatch.groupValues[2]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
                                     val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = TextFieldValue(newStr, TextRange(startOfPrevLine))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
                                 } else {
                                     val prefix = "☐ "
                                     val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = TextFieldValue(newStr, TextRange(cursor + prefix.length))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
                                 }
                             }
                         }
@@ -224,7 +226,7 @@ fun AddNoteContent(
                     val insertAtCursor = { prefix: String ->
                         val before = currentText.substring(0, currentSelection.min)
                         val after = currentText.substring(currentSelection.max)
-                        description = TextFieldValue(
+                        description = description.copy(
                             text = before + prefix + after,
                             selection = TextRange(currentSelection.min + prefix.length)
                         )
@@ -245,10 +247,10 @@ fun AddNoteContent(
                         
                         if (line.startsWith("☐ ")) {
                             val newStr = text.substring(0, lineStart) + "☑ " + text.substring(lineStart + 2)
-                            description = TextFieldValue(newStr, currentSelection)
+                            description = description.copy(text = newStr, selection = currentSelection)
                         } else if (line.startsWith("☑ ")) {
                             val newStr = text.substring(0, lineStart) + "☐ " + text.substring(lineStart + 2)
-                            description = TextFieldValue(newStr, currentSelection)
+                            description = description.copy(text = newStr, selection = currentSelection)
                         } else {
                             insertAtCursor("☐ ") 
                         }
@@ -260,14 +262,14 @@ fun AddNoteContent(
                             val before = currentText.substring(0, currentSelection.min)
                             val selected = currentText.substring(currentSelection.min, currentSelection.max)
                             val after = currentText.substring(currentSelection.max)
-                            description = TextFieldValue(
+                            description = description.copy(
                                 text = before + "**" + selected + "**" + after,
                                 selection = TextRange(currentSelection.max + 4)
                             )
                         } else {
                             val before = currentText.substring(0, currentSelection.min)
                             val after = currentText.substring(currentSelection.max)
-                            description = TextFieldValue(
+                            description = description.copy(
                                 text = before + "****" + after,
                                 selection = TextRange(currentSelection.min + 2)
                             )

@@ -33,7 +33,9 @@ fun SwipeToDismissWrapper(
     onUnarchive: ((Note) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState()
+    val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { totalDistance -> totalDistance * 0.4f }
+    )
 
     LaunchedEffect(dismissState.currentValue) {
         when (dismissState.currentValue) {

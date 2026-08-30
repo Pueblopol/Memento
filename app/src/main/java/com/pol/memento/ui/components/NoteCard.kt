@@ -59,6 +59,7 @@ fun NoteCard(
     onRemoveFromFolder: (() -> Unit)? = null,
     onToggleCheckbox: ((Note) -> Unit)? = null
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val priorityColor = when (note.priority) {
         PriorityLevel.HIGH -> Color(0xFFE53935)   // Rosso
         PriorityLevel.MEDIUM -> Color(0xFF4CAF50) // Verde
@@ -161,6 +162,18 @@ fun NoteCard(
                                     textLayoutResult?.let { layoutResult ->
                                         val offset = layoutResult.getOffsetForPosition(pos)
                                         val textStr = note.description
+                                        
+                                        // Handle URL clicks
+                                        val annotations = annotatedText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                        if (annotations.isNotEmpty()) {
+                                            val url = annotations.first().item
+                                            try {
+                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {}
+                                            return@detectTapGestures
+                                        }
+
                                         if (offset < textStr.length) {
                                             val charClicked = textStr[offset]
                                             if (charClicked == '☐') {
