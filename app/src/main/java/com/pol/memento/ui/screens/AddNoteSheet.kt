@@ -149,7 +149,9 @@ fun AddNoteContent(
                     val newText = newValue.text
 
                     val cursor = newValue.selection.min
-                    val isNewlineInserted = cursor > 0 && newText.length > oldText.length && newText[cursor - 1] == '\n'
+                    val newlinesInOld = oldText.count { it == '\n' }
+                    val newlinesInNew = newText.count { it == '\n' }
+                    val isNewlineInserted = cursor > 0 && newlinesInNew > newlinesInOld && newText[cursor - 1] == '\n'
                     
                     if (isNewlineInserted && newValue.selection.min == newValue.selection.max) {
                         if (cursor > 0 && newText[cursor - 1] == '\n') {
@@ -170,33 +172,33 @@ fun AddNoteContent(
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
                                     val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine), composition = null)
                                 } else {
                                     val prefix = "${num + 1}. "
                                     val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length), composition = null)
                                 }
                             } else if (bulletMatch != null) {
                                 val content = bulletMatch.groupValues[2]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
                                     val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine), composition = null)
                                 } else {
                                     val prefix = "• "
                                     val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length), composition = null)
                                 }
                             } else if (checkMatch != null) {
                                 val content = checkMatch.groupValues[2]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
                                     val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine), composition = null)
                                 } else {
                                     val prefix = "☐ "
                                     val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
+                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length), composition = null)
                                 }
                             }
                         }
@@ -228,7 +230,7 @@ fun AddNoteContent(
                         val after = currentText.substring(currentSelection.max)
                         description = description.copy(
                             text = before + prefix + after,
-                            selection = TextRange(currentSelection.min + prefix.length)
+                            selection = TextRange(currentSelection.min + prefix.length), composition = null
                         )
                     }
 
@@ -247,10 +249,10 @@ fun AddNoteContent(
                         
                         if (line.startsWith("☐ ")) {
                             val newStr = text.substring(0, lineStart) + "☑ " + text.substring(lineStart + 2)
-                            description = description.copy(text = newStr, selection = currentSelection)
+                            description = description.copy(text = newStr, selection = currentSelection, composition = null)
                         } else if (line.startsWith("☑ ")) {
                             val newStr = text.substring(0, lineStart) + "☐ " + text.substring(lineStart + 2)
-                            description = description.copy(text = newStr, selection = currentSelection)
+                            description = description.copy(text = newStr, selection = currentSelection, composition = null)
                         } else {
                             insertAtCursor("☐ ") 
                         }
@@ -264,14 +266,14 @@ fun AddNoteContent(
                             val after = currentText.substring(currentSelection.max)
                             description = description.copy(
                                 text = before + "**" + selected + "**" + after,
-                                selection = TextRange(currentSelection.max + 4)
+                                selection = TextRange(currentSelection.max + 4), composition = null
                             )
                         } else {
                             val before = currentText.substring(0, currentSelection.min)
                             val after = currentText.substring(currentSelection.max)
                             description = description.copy(
                                 text = before + "****" + after,
-                                selection = TextRange(currentSelection.min + 2)
+                                selection = TextRange(currentSelection.min + 2), composition = null
                             )
                         }
                     }) {
