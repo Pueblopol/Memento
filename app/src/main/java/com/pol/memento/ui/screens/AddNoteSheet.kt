@@ -1,5 +1,9 @@
 package com.pol.memento.ui.screens
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.rememberCoroutineScope
+
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -75,6 +79,7 @@ fun AddNoteContent(
     var isPersistent by remember { mutableStateOf(noteToEdit?.isPersistent ?: false) }
     var selectedFolderId by remember { mutableStateOf(initialFolderId) }
     var isDescriptionFocused by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val scrollConnection = remember {
         object : NestedScrollConnection {
@@ -158,47 +163,64 @@ fun AddNoteContent(
                             val textBeforeNewline = newText.substring(0, cursor - 1)
                             val previousLine = textBeforeNewline.substringAfterLast('\n')
                             
-                            val numberRegex = Regex("^(\\d+)\\.\\s(.*)$")
-                            val bulletRegex = Regex("^(•)\\s(.*)$")
-                            val checkboxRegex = Regex("^(☐|☑)\\s(.*)$")
+                            val numberRegex = Regex("^(\\d+)\\.([\\s\\u00A0]+)(.*)$")
+                            val bulletRegex = Regex("^(•)([\\s\\u00A0]+)(.*)$")
+                            val checkboxRegex = Regex("^(☐|☑)([\\s\\u00A0]+)(.*)$")
                             
                             val numMatch = numberRegex.find(previousLine)
                             val bulletMatch = bulletRegex.find(previousLine)
                             val checkMatch = checkboxRegex.find(previousLine)
                             
+                            var shouldFormatAsynchronously = false
+                            var asyncNewStr = ""
+                            var asyncSelection = 0
+                            
                             if (numMatch != null) {
                                 val num = numMatch.groupValues[1].toInt()
-                                val content = numMatch.groupValues[2]
+                                val content = numMatch.groupValues[3]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
-                                    val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
+                                    asyncNewStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
+                                    asyncSelection = startOfPrevLine
+                                    shouldFormatAsynchronously = true
                                 } else {
                                     val prefix = "${num + 1}. "
-                                    val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
+                                    asyncNewStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
+                                    asyncSelection = cursor + prefix.length
+                                    shouldFormatAsynchronously = true
                                 }
                             } else if (bulletMatch != null) {
-                                val content = bulletMatch.groupValues[2]
+                                val content = bulletMatch.groupValues[3]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
-                                    val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
+                                    asyncNewStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
+                                    asyncSelection = startOfPrevLine
+                                    shouldFormatAsynchronously = true
                                 } else {
                                     val prefix = "• "
-                                    val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
+                                    asyncNewStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
+                                    asyncSelection = cursor + prefix.length
+                                    shouldFormatAsynchronously = true
                                 }
                             } else if (checkMatch != null) {
-                                val content = checkMatch.groupValues[2]
+                                val content = checkMatch.groupValues[3]
                                 if (content.isEmpty()) {
                                     val startOfPrevLine = textBeforeNewline.lastIndexOf('\n') + 1
-                                    val newStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(startOfPrevLine))
+                                    asyncNewStr = newText.substring(0, startOfPrevLine) + newText.substring(cursor)
+                                    asyncSelection = startOfPrevLine
+                                    shouldFormatAsynchronously = true
                                 } else {
                                     val prefix = "☐ "
-                                    val newStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
-                                    finalValue = newValue.copy(text = newStr, selection = TextRange(cursor + prefix.length))
+                                    asyncNewStr = newText.substring(0, cursor) + prefix + newText.substring(cursor)
+                                    asyncSelection = cursor + prefix.length
+                                    shouldFormatAsynchronously = true
+                                }
+                            }
+                            
+                            if (shouldFormatAsynchronously) {
+                                coroutineScope.launch {
+                                    delay(30)
+                                    description = description.copy(text = asyncNewStr, selection = TextRange(asyncSelection))
                                 }
                             }
                         }
