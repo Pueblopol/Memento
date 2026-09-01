@@ -127,6 +127,11 @@ object MarkdownDeserializer {
             val descriptionBuilder = StringBuilder()
             var firstHeadingSkipped = false
             
+            // Salta la linea vuota inserita forzatamente dal serializzatore dopo lo YAML
+            if (hasYaml && i < lines.size && lines[i].isBlank()) {
+                i++
+            }
+            
             while (i < lines.size) {
                 val line = lines[i]
                 if (hasYaml && !firstHeadingSkipped && line.startsWith("# ") && line.substringAfter("# ").trim() == title) {
