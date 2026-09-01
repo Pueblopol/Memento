@@ -5,6 +5,9 @@ import com.pol.memento.data.GitSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
@@ -16,6 +19,7 @@ class MarkdownSyncEngine(
 ) {
     // La cartella locale dove risiederà il repository clonato
     private val repoDir = File(context.filesDir, "memento_sync")
+    private val saveMutex = Mutex()
 
     private fun getSanitizedFilename(title: String): String {
         val safeTitle = title.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
@@ -55,10 +59,11 @@ class MarkdownSyncEngine(
      * Salva una singola nota nel file system clonato, nella cartella specificata dal suo primo tag (o root).
      */
     suspend fun saveNote(note: com.pol.memento.data.Note, folderNames: List<String>, isUpdate: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
+        saveMutex.withLock {
+            try {
+                if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
 
-            val markdownContent = MarkdownSerializer.serializeNote(note, folderNames)
+                val markdownContent = MarkdownSerializer.serializeNote(note, folderNames)
             
             // Trova l'eventuale file vecchio (se il titolo è stato cambiato)
             val oldFile = findFileByNoteId(note.id)
@@ -85,24 +90,27 @@ class MarkdownSyncEngine(
             e.printStackTrace()
             Result.failure(Exception("Errore salvataggio nota: ${e.message}"))
         }
+        }
     }
 
     /**
      * Elimina una nota dal file system e fa commit.
      */
     suspend fun deleteNote(note: com.pol.memento.data.Note): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
+        saveMutex.withLock {
+            try {
+                if (!repoDir.exists()) return@withContext Result.failure(Exception("Repo non clonato"))
 
-            val oldFile = findFileByNoteId(note.id)
-            oldFile?.delete()
-            
-            commitAndPush("Delete note: ${note.title}")
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(Exception("Errore eliminazione nota: ${e.message}"))
+                val oldFile = findFileByNoteId(note.id)
+                oldFile?.delete()
+                
+                commitAndPush("Delete note: ${note.title}")
+                
+                Result.success(Unit)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Result.failure(Exception("Errore eliminazione nota: ${e.message}"))
+            }
         }
     }
 
