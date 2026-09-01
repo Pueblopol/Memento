@@ -52,13 +52,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folder.id, noteId))
             }
             syncEngine.createPhysicalFolder(name)
+            noteIds.forEach { noteId ->
+                dao.getNoteById(noteId)?.let { syncNoteSave(it, isUpdate = true) }
+            }
         }
     }
 
     fun deleteFolder(folder: com.pol.memento.data.Folder) {
         viewModelScope.launch {
+            val noteIds = foldersWithNotesList.value.find { it.folder.id == folder.id }?.notes?.map { it.id } ?: emptyList()
             folderDao.clearNotesForFolder(folder.id)
             folderDao.deleteFolder(folder)
+            noteIds.forEach { noteId ->
+                dao.getNoteById(noteId)?.let { syncNoteSave(it, isUpdate = true) }
+            }
         }
     }
 
@@ -69,6 +76,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 folderDao.insertFolderNoteCrossRef(
                     com.pol.memento.data.FolderNoteCrossRef(folderWithNotes.folder.id, note.id)
                 )
+                syncNoteSave(note, isUpdate = true)
             }
         }
     }
@@ -76,14 +84,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun removeNoteFromFolder(folderId: String, noteId: String) {
         viewModelScope.launch {
             folderDao.removeNoteFromFolder(folderId, noteId)
+            dao.getNoteById(noteId)?.let { syncNoteSave(it, isUpdate = true) }
         }
     }
 
     fun updateFolderNotes(folderId: String, noteIds: Set<String>) {
         viewModelScope.launch {
+            val oldNotes = foldersWithNotesList.value.find { it.folder.id == folderId }?.notes?.map { it.id } ?: emptyList()
             folderDao.clearNotesForFolder(folderId)
             noteIds.forEach { noteId ->
                 folderDao.insertFolderNoteCrossRef(com.pol.memento.data.FolderNoteCrossRef(folderId, noteId))
+            }
+            val allAffected = (oldNotes + noteIds).toSet()
+            allAffected.forEach { noteId ->
+                dao.getNoteById(noteId)?.let { syncNoteSave(it, isUpdate = true) }
             }
         }
     }
@@ -129,7 +143,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             notificationHelper.showNotification(newNote)
-            syncNoteSave(newNote, false, folderId)
+            syncNoteSave(newNote, false)
         }
     }
 
@@ -174,7 +188,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             notificationHelper.showNotification(updatedNote)
-            syncNoteSave(updatedNote, true, folderId)
+            syncNoteSave(updatedNote, true)
         }
     }
 
@@ -253,17 +267,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private suspend fun syncNoteSave(note: Note, isUpdate: Boolean, folderIdOverride: String? = null) {
-        val folderNames = mutableListOf<String>()
-        if (folderIdOverride != null) {
-            val folder = folderDao.getFolderById(folderIdOverride)
-            folder?.let { folderNames.add(it.name) }
-        } else {
-            val currentFolders = foldersWithNotesList.value
-                .filter { it.notes.any { n -> n.id == note.id } }
-                .map { it.folder.name }
-            folderNames.addAll(currentFolders)
-        }
+    private suspend fun syncNoteSave(note: Note, isUpdate: Boolean) {
+        val folderNames = folderDao.getFolderNamesForNote(note.id).toMutableList()
         syncEngine.saveNote(note, folderNames, isUpdate)
     }
 

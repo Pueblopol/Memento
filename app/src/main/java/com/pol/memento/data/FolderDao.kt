@@ -44,4 +44,6 @@ interface FolderDao {
 
     @Delete
     suspend fun deleteFolder(folder: Folder)
+    @Query("SELECT f.name FROM folders f INNER JOIN folder_note_cross_ref c ON f.id = c.folderId WHERE c.noteId = :noteId")
+    suspend fun getFolderNamesForNote(noteId: String): List<String>
 }
