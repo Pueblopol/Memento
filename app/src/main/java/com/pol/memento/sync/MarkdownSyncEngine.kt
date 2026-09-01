@@ -155,7 +155,7 @@ class MarkdownSyncEngine(
             Git.open(repoDir).use { git ->
                 val pullResult = git.pull()
                     .setCredentialsProvider(credentials)
-                    .setStrategy(org.eclipse.jgit.merge.MergeStrategy.THEIRS)
+                    .setContentMergeStrategy(org.eclipse.jgit.merge.ContentMergeStrategy.THEIRS)
                     .call()
                 
                 if (pullResult.isSuccessful) {
