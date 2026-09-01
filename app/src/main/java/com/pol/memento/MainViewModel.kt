@@ -9,6 +9,7 @@ import com.pol.memento.data.PriorityLevel
 import com.pol.memento.notifications.NotificationHelper
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -42,6 +43,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val foldersWithNotesList: StateFlow<List<com.pol.memento.data.FolderWithNotes>> = folderDao.getFoldersWithNotes()
+        .map { folders ->
+            folders.map { folderWithNotes ->
+                folderWithNotes.copy(
+                    notes = folderWithNotes.notes.sortedWith(
+                        compareByDescending<Note> { it.isPinned }
+                            .thenBy {
+                                when (it.priority) {
+                                    PriorityLevel.HIGH -> 1
+                                    PriorityLevel.MEDIUM -> 2
+                                    else -> 3
+                                }
+                            }
+                            .thenBy { it.position }
+                            .thenByDescending { it.createdAt }
+                    )
+                )
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun createFolder(name: String, noteIds: Set<String>) {

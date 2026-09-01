@@ -9,6 +9,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -237,6 +242,30 @@ fun AddNoteContent(
                 visualTransformation = MarkdownVisualTransformation()
             )
             
+            val urlRegex = Regex("(https?://[^\\s]+)")
+            val links = urlRegex.findAll(description.text).map { it.value }.distinct().toList()
+            if (links.isNotEmpty()) {
+                val context = LocalContext.current
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(links.size) { index ->
+                        val url = links[index]
+                        androidx.compose.material3.AssistChip(
+                            onClick = {
+                                try {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {}
+                            },
+                            label = { Text(url, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp)) },
+                            leadingIcon = { Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        )
+                    }
+                }
+            }
+
             AnimatedVisibility(visible = isDescriptionFocused) {
                 Row(
                     modifier = Modifier

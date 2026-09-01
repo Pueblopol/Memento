@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes WHERE isCompleted = 0 ORDER BY CASE priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END ASC, isPinned DESC, position ASC, createdAt DESC")
+    @Query("SELECT * FROM notes WHERE isCompleted = 0 ORDER BY isPinned DESC, CASE priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END ASC, position ASC, createdAt DESC")
     fun getActiveNotes(): Flow<List<Note>>
 
     @Query("SELECT * FROM notes WHERE isCompleted = 1 ORDER BY isPinned DESC, createdAt DESC")

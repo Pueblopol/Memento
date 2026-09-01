@@ -260,6 +260,7 @@ fun ArchiveNoteItem(
 
     SwipeToDismissWrapper(
         note = note,
+        enabled = isGridView,
         onDelete = deleteNoteAction,
         onArchive = null,
         onUnarchive = unarchiveNoteAction

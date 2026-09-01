@@ -28,11 +28,17 @@ import com.pol.memento.data.Note
 @Composable
 fun SwipeToDismissWrapper(
     note: Note,
+    enabled: Boolean = true,
     onDelete: (Note) -> Unit,
     onArchive: ((Note) -> Unit)? = null,
     onUnarchive: ((Note) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    if (!enabled) {
+        content()
+        return
+    }
+
     val dismissState = rememberSwipeToDismissBoxState(
         positionalThreshold = { totalDistance -> totalDistance * 0.4f }
     )

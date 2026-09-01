@@ -324,7 +324,7 @@ fun MainScreen(
                         }
                         Box(modifier = Modifier.animateItem()) {
                             val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
-                            SwipeToDismissWrapper(note = note, onDelete = deleteNoteAction, onArchive = archiveNoteAction) {
+                            SwipeToDismissWrapper(note = note, enabled = true, onDelete = deleteNoteAction, onArchive = archiveNoteAction) {
                                 NoteCard(
                                     modifier = Modifier.shadow(0.dp, shape = RoundedCornerShape(12.dp)),
                                     dragHandleModifier = Modifier,
@@ -386,7 +386,7 @@ fun MainScreen(
                             }
                             Box(modifier = Modifier.animateItem()) {
                                 val folderName = foldersWithNotes.find { f -> f.notes.any { it.id == note.id } }?.folder?.name
-                                SwipeToDismissWrapper(note = note, onDelete = deleteNoteAction, onArchive = archiveNoteAction) {
+                                SwipeToDismissWrapper(note = note, enabled = false, onDelete = deleteNoteAction, onArchive = archiveNoteAction) {
                                     NoteCard(
                                         modifier = Modifier.shadow(elevation, shape = RoundedCornerShape(12.dp)),
                                         dragHandleModifier = if (canReorder) Modifier.draggableHandle() else Modifier,
