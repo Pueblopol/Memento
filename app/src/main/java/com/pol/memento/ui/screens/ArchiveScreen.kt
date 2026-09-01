@@ -64,6 +64,7 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
 
     val defaultPriority by viewModel.defaultPriority.collectAsState()
     var isSheetOpen by remember { mutableStateOf(false) }
+    var showNoteMenuId by remember { mutableStateOf<String?>(null) }
     var noteToEdit by remember { mutableStateOf<Note?>(null) }
 
     if (isSearchActive) {
@@ -228,12 +229,13 @@ fun ArchiveNoteItem(
     folderName: String?,
     onNoteClick: (Note) -> Unit
 ) {
+    var showMenu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val deleteNoteAction: (Note) -> Unit = { deletedNote ->
         viewModel.deleteNote(deletedNote)
         coroutineScope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
             val result = snackbarHostState.showSnackbar(
-                message = "Nota eliminata definitivamente",
+                message = "Nota eliminata",
                 actionLabel = "ANNULLA",
                 duration = SnackbarDuration.Short
             )
@@ -259,25 +261,45 @@ fun ArchiveNoteItem(
     }
 
     SwipeToDismissWrapper(
-        note = note,
-        enabled = isGridView,
-        onDelete = deleteNoteAction,
-        onArchive = null,
-        onUnarchive = unarchiveNoteAction
-    ) {
-        NoteCard(
-            modifier = Modifier.shadow(0.dp, shape = RoundedCornerShape(12.dp)),
-            dragHandleModifier = Modifier,
-            showDragHandle = false,
-            isGridView = isGridView,
-            isSelectedForShare = false,
             note = note,
-            folderName = folderName,
-            onClick = { onNoteClick(note) },
-            onTogglePin = { viewModel.togglePin(note) },
-            onToggleCheckbox = { updatedNote ->
-                viewModel.updateNote(updatedNote, updatedNote.title, updatedNote.description, updatedNote.priority, updatedNote.isPinned)
+            enabled = isGridView,
+            onDelete = deleteNoteAction,
+            onArchive = null,
+            onUnarchive = unarchiveNoteAction
+        ) {
+            NoteCard(
+                modifier = Modifier.shadow(0.dp, shape = RoundedCornerShape(12.dp)),
+                dragHandleModifier = Modifier,
+                showDragHandle = false,
+                isGridView = isGridView,
+                isSelectedForShare = false,
+                note = note,
+                folderName = folderName,
+                onClick = { onNoteClick(note) },
+                onLongClick = { showMenu = true },
+                onTogglePin = { viewModel.togglePin(note) },
+                onToggleCheckbox = { updatedNote ->
+                    viewModel.updateNote(updatedNote, updatedNote.title, updatedNote.description, updatedNote.priority, updatedNote.isPinned)
+                }
+            )
+            androidx.compose.material3.DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("Ripristina") },
+                    onClick = { 
+                        showMenu = false
+                        unarchiveNoteAction(note)
+                    }
+                )
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("Elimina") },
+                    onClick = { 
+                        showMenu = false
+                        deleteNoteAction(note)
+                    }
+                )
             }
-        )
+        }
     }
-}

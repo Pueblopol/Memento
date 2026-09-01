@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,6 +46,7 @@ import com.pol.memento.data.Note
 import com.pol.memento.data.PriorityLevel
 import com.pol.memento.ui.util.parseMarkdown
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteCard(
     modifier: Modifier = Modifier,
@@ -55,6 +58,7 @@ fun NoteCard(
     note: Note,
     folderName: String? = null,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     onTogglePin: (() -> Unit)? = null,
     onRemoveFromFolder: (() -> Unit)? = null,
     onToggleCheckbox: ((Note) -> Unit)? = null
@@ -71,7 +75,10 @@ fun NoteCard(
     } else null
 
     Card(
-        modifier = modifier.fillMaxWidth().clickable { onClick() },
+        modifier = modifier.fillMaxWidth().combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        ),
         border = cardBorder
     ) {
         if (isGridView) {

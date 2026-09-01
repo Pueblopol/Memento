@@ -95,6 +95,7 @@ fun MainScreen(
 
     // Variabili per mostrare o nascondere i popup
     var isSheetOpen by remember { mutableStateOf(false) }
+    var showNoteMenuId by remember { mutableStateOf<String?>(null) }
     var noteToEdit by remember { mutableStateOf<Note?>(null) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
@@ -338,10 +339,30 @@ fun MainScreen(
                                         isSheetOpen = true
                                     },
                                     onTogglePin = { viewModel.togglePin(note) },
+                                    onLongClick = { showNoteMenuId = note.id },
                                     onToggleCheckbox = { updatedNote ->
                                         viewModel.updateNote(updatedNote, updatedNote.title, updatedNote.description, updatedNote.priority, updatedNote.isPinned)
                                     }
                                 )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = showNoteMenuId == note.id,
+                                    onDismissRequest = { showNoteMenuId = null }
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Archivia") },
+                                        onClick = { 
+                                            showNoteMenuId = null
+                                            archiveNoteAction(note)
+                                        }
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Elimina") },
+                                        onClick = { 
+                                            showNoteMenuId = null
+                                            deleteNoteAction(note)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -400,8 +421,28 @@ fun MainScreen(
                                             isSheetOpen = true
                                         },
                                         onTogglePin = { viewModel.togglePin(note) },
+                                        onLongClick = { showNoteMenuId = note.id },
                                         onToggleCheckbox = { updatedNote ->
                                             viewModel.updateNote(updatedNote, updatedNote.title, updatedNote.description, updatedNote.priority, updatedNote.isPinned)
+                                        }
+                                    )
+                                }
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = showNoteMenuId == note.id,
+                                    onDismissRequest = { showNoteMenuId = null }
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Archivia") },
+                                        onClick = { 
+                                            showNoteMenuId = null
+                                            archiveNoteAction(note)
+                                        }
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Elimina") },
+                                        onClick = { 
+                                            showNoteMenuId = null
+                                            deleteNoteAction(note)
                                         }
                                     )
                                 }
