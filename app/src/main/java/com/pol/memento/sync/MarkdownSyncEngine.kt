@@ -138,7 +138,8 @@ class MarkdownSyncEngine(
     }
 
     /**
-     * Esegue `git pull --rebase` per scaricare le ultime modifiche dal cloud.
+     * Esegue `git pull` per scaricare le ultime modifiche dal cloud.
+     * In caso di conflitti (file modificato su entrambi), favoriamo la versione remota.
      */
     suspend fun pullRebase(): Result<Unit> = withContext(Dispatchers.IO) {
         val url = gitSettings.getRepoUrl()
@@ -154,40 +155,16 @@ class MarkdownSyncEngine(
             Git.open(repoDir).use { git ->
                 val pullResult = git.pull()
                     .setCredentialsProvider(credentials)
-                    .setRebase(true) // Git pull --rebase
+                    .setStrategy(org.eclipse.jgit.merge.MergeStrategy.THEIRS)
                     .call()
                 
                 if (pullResult.isSuccessful) {
                     return@withContext Result.success(Unit)
                 }
                 
-                // Gestione conflitti: se c'è un conflitto, abortiamo il rebase e favoriamo la versione remota (più recente sul cloud)
-                val status = pullResult.rebaseResult?.status
-                if (status != null && status != org.eclipse.jgit.api.RebaseResult.Status.OK) {
-                    try {
-                        git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
-                        // Resetta hard alla versione remota scaricata
-                        git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).setRef("FETCH_HEAD").call()
-                        return@withContext Result.success(Unit)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        return@withContext Result.failure(Exception("Impossibile risolvere il conflitto: ${e.message}"))
-                    }
-                }
-
-                return@withContext Result.failure(Exception("Errore nel pull rebase: ${status?.name}"))
+                return@withContext Result.failure(Exception("Errore nel pull: operazione non riuscita o conflitti irrisolti"))
             }
         } catch (e: Exception) {
-            // Se eravamo in rebasing e c'è stata un'eccezione, proviamo ad abortire
-            try {
-                Git.open(repoDir).use { git ->
-                    if (git.repository.repositoryState != org.eclipse.jgit.lib.RepositoryState.SAFE) {
-                        git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
-                        git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).setRef("FETCH_HEAD").call()
-                    }
-                }
-            } catch (ignore: Exception) {}
-            
             e.printStackTrace()
             Result.failure(Exception("Errore durante il pull: ${e.message}"))
         }
@@ -395,6 +372,10 @@ class MarkdownSyncEngine(
     fun getMarkdownFilesCount(): Int {
         if (!repoDir.exists()) return 0
         return repoDir.walkTopDown().count { it.isFile && it.name.endsWith(".md") }
+    }
+
+    fun isRepoCloned(): Boolean {
+        return repoDir.exists()
     }
 
     /**

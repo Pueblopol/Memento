@@ -288,9 +288,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 onResult("Configura GitHub nelle impostazioni prima di sincronizzare")
                 return@launch
             }
+
+            if (!syncEngine.isRepoCloned()) {
+                val cloneResult = syncEngine.cloneRepo(repoUrl, username, pat)
+                if (cloneResult.isSuccess) {
+                    initialSyncAfterClone()
+                    onResult("Repo clonato e sincronizzazione completata!")
+                } else {
+                    onResult("Errore di clonazione: ${cloneResult.exceptionOrNull()?.message}")
+                }
+                return@launch
+            }
             
-            val pullResult = syncEngine.syncAll()
-            if (pullResult.isSuccess) {
+            val syncResult = syncEngine.syncAll()
+            if (syncResult.isSuccess) {
                 val dbResult = syncEngine.syncDatabaseWithFiles(dao, folderDao)
                 if (dbResult.isSuccess) {
                     onResult("Sincronizzazione completata con successo!")
@@ -298,13 +309,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     onResult("Errore db: ${dbResult.exceptionOrNull()?.message}")
                 }
             } else {
-                val cloneResult = syncEngine.cloneRepo(repoUrl, username, pat)
-                if (cloneResult.isSuccess) {
-                    initialSyncAfterClone()
-                    onResult("Repo clonato e sincronizzazione completata!")
-                } else {
-                    onResult("Errore di sincronizzazione: ${cloneResult.exceptionOrNull()?.message}")
-                }
+                onResult("Errore di sincronizzazione: ${syncResult.exceptionOrNull()?.message}")
             }
         }
     }
