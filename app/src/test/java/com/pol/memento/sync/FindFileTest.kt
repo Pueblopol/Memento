@@ -1,4 +1,4 @@
-package com.pol.memento
+package com.pol.memento.sync
 
 import org.junit.Test
 import java.io.File

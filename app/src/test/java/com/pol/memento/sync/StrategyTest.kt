@@ -1,4 +1,4 @@
-package com.pol.memento
+package com.pol.memento.sync
 
 import org.eclipse.jgit.merge.MergeStrategy
 import org.junit.Test

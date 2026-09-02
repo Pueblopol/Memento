@@ -1,19 +1,19 @@
-package com.pol.memento
+package com.pol.memento.sync
 
 import org.eclipse.jgit.api.Git
 import org.junit.Test
 import java.io.File
 import org.junit.Assert.assertTrue
 
-class RecursiveSyncTest {
+class ConflictSyncTest {
     @Test
-    fun testRecursiveMove() {
-        val remoteDir = File("build/test_rec_remote")
+    fun testConflictMove() {
+        val remoteDir = File("build/test_conf2_remote")
         if (remoteDir.exists()) remoteDir.deleteRecursively()
         remoteDir.mkdirs()
         Git.init().setDirectory(remoteDir).setBare(true).call()
 
-        val repoDir = File("build/test_rec_repo")
+        val repoDir = File("build/test_conf2_repo")
         if (repoDir.exists()) repoDir.deleteRecursively()
         val git = Git.cloneRepository().setURI(remoteDir.absolutePath).setDirectory(repoDir).call()
 
@@ -23,12 +23,12 @@ class RecursiveSyncTest {
         git.commit().setMessage("Init").call()
         git.push().call()
 
-        val pcDir = File("build/test_rec_pc")
+        val pcDir = File("build/test_conf2_pc")
         if (pcDir.exists()) pcDir.deleteRecursively()
         val pcGit = Git.cloneRepository().setURI(remoteDir.absolutePath).setDirectory(pcDir).call()
-        File(pcDir, "Note2.md").writeText("---\nid: 2\nfolders: []\n---\nHello 2")
+        File(pcDir, "Note1.md").appendText(" from PC")
         pcGit.add().addFilepattern(".").call()
-        pcGit.commit().setMessage("PC add note 2").call()
+        pcGit.commit().setMessage("PC edit").call()
         pcGit.push().call()
 
         note1.delete()
